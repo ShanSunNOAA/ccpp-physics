@@ -2,6 +2,7 @@
 !GODDARD GODDARD GODDARD GODDARD GODDARD 
  module opt_gocart_mod
 
+ use machine ,        only : kind_phys
  implicit none
 
 !---------------------------------------------------------------------
@@ -28,17 +29,20 @@
                                                 ! It actually starts from 0 but adjusted for smallest value 
                                                 ! in mie table (wn=250).  
 
-  real, dimension(11) :: midbands 
+  real(kind_phys), dimension(11) :: midbands 
   data midbands/.2,.235,.27,.2875,.3025,.305,.3625,.55,1.92,1.745,6.135/ 
-  real,parameter :: frac(4)=(/ 0.01053,0.08421,0.25263,0.65263 /) !fraction for fine dust
-  real,save :: Bex(tgmx,nwl,0:nrmx) ! SW Mass extinction coefficient [m2/g]
-  real,save :: w0(tgmx,nwl,0:nrmx)  ! SW single scattering albedo [-]
-  real,save :: g(tgmx,nwl,0:nrmx)   ! SW asymetry factor [-]
+  !real,parameter :: frac(4)=(/ 0.01053,0.08421,0.25263,0.65263 /) !fraction for fine dust 
+  !real,parameter :: frac(4)=(/0.0054,0.0257,0.1923,0.7766/) !fraction for fine dust !lzhang Kok
+  real(kind_phys),parameter :: frac(4)=(/0.06,0.12,0.24,0.58/) !fraction for fine dust !lzhang GEOS-Chem
+  !real,parameter :: frac(4)=(/0.0070,0.0332,0.2487,0.7111/) !fraction for fine dust !lzhang IMP
+  real(kind_phys),save :: Bex(tgmx,nwl,0:nrmx) ! SW Mass extinction coefficient [m2/g]
+  real(kind_phys),save :: w0(tgmx,nwl,0:nrmx)  ! SW single scattering albedo [-]
+  real(kind_phys),save :: g(tgmx,nwl,0:nrmx)   ! SW asymetry factor [-]
 
 
-  real,save :: Bex_lw(tgmx,nwl_lw,0:nrmx) ! LW Mass extinction coefficient [m2/g]
-  real,save :: w0_lw(tgmx,nwl_lw,0:nrmx)  ! LW single scattering albedo [-]
-  real,save :: g_lw(tgmx,nwl_lw,0:nrmx)   ! LW asymetry factor [-] 
+  real(kind_phys),save :: Bex_lw(tgmx,nwl_lw,0:nrmx) ! LW Mass extinction coefficient [m2/g]
+  real(kind_phys),save :: w0_lw(tgmx,nwl_lw,0:nrmx)  ! LW single scattering albedo [-]
+  real(kind_phys),save :: g_lw(tgmx,nwl_lw,0:nrmx)   ! LW asymetry factor [-] 
 
 
 !
@@ -48,8 +52,8 @@
 !  2 = BC1+BC2  !black carbon (soot)
 !  3 = OC1      !non hygroscopic OC
 !  4 = OC2      !hygroscopic OC
-!  5 = SS1      !sea-salt accumulation mode
-!  6 = SS2+SS3+SS4 !sea-salt coarse mode
+!  5 = SS1      !sea-salt accumulation mode !SS1+SS2
+!  6 = SS2+SS3+SS4 !sea-salt coarse mode    !SS3+SS4+SS5
 !  7 = DU1      ! dust mode 1
 !  8 = DU1      ! dust mode 2
 !  9 = DU1      ! dust mode 3
@@ -8554,26 +8558,27 @@
 
   subroutine aero_opt(sw_or_lw,dz8w,chem             &
                    ,alt,relhum,aod,tau,ssa,asy                   &
-                   ,ids,ide, jds,jde, kds,kde                     &
-!                   ,num_chem,ids,ide, jds,jde, kds,kde                     &
+                   ,num_chem,ids,ide, jds,jde, kds,kde                     &
                    ,ims,ime, jms,jme, kms,kme                     &
                    ,its,ite, jts,jte, kts,kte )
-        USE gsd_chem_config
 !       USE module_initial_chem_namelists 
-!  USE chem_const_mod, only: oc_mfac,nh4_mfac
+        USE gsd_chem_config,  only:  p_bc1,p_bc2,p_oc1,p_oc2,      &
+              p_msa,p_dust_1,p_dust_2,p_dust_3,p_seas_1,p_seas_2,p_seas_3,&
+              p_sulf,p_p25,p_so2,p_seas_4,p_seas_5,p_p10,p_dust_4,p_dust_5,&
+              oc_mfac,nh4_mfac,mw_so4_aer,mwdry !lzhang
 !  USE module_data_gocart_chem, only: oc_mfac,nh4_mfac
   implicit none
    INTEGER,    INTENT(IN   ) ::        ids,ide, jds,jde, kds,kde, &
                                        ims,ime, jms,jme, kms,kme, &
-                                       its,ite, jts,jte, kts,kte!,num_chem
+                                       its,ite, jts,jte, kts,kte,num_chem
 !
 ! array that holds all advected chemical species
 !
-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),             &
+   REAL(kind_phys), DIMENSION( ims:ime, kms:kme, jms:jme, num_chem ),             &
          INTENT(INOUT ) ::  chem
 !
-   REAL, DIMENSION( ims:ime, jms:jme ) :: aod
-   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                       &
+   REAL(kind_phys), DIMENSION( ims:ime, jms:jme ) :: aod
+   REAL(kind_phys), DIMENSION( ims:ime, kms:kme, jms:jme ),                       &
          INTENT(IN ) ::  relhum,dz8w, alt
    integer, dimension( its:ite, jts:jte ) :: iprt
 
@@ -8588,8 +8593,8 @@
 !  2 = BC1+BC2  ! black carbon (soot)
 !  3 = OC1      ! non hygroscopic OC
 !  4 = OC2      ! hygroscopic OC
-!  5 = SS1      ! sea-salt accumulation mode
-!  6 = SS2+SS3+SS4 !sea-salt coarse mode
+!  5 = SS1+SS2  ! sea-salt accumulation mode !lzhang
+!  6 = SS3+SS4+SS5 !sea-salt coarse mode !lzhang
 !  7 = DU1      ! dust mode 1
 !  8 = DU1      ! dust mode 2
 !  9 = DU1      ! dust mode 3
@@ -8604,21 +8609,21 @@
 !-----IO variables
  character(len=2), intent(in) :: sw_or_lw   ! character index that determines sw or lw radiation
  integer, parameter :: nband = 11         !# of radiation bands
- real      :: aero(kts:kte,tgmx) !aerosol mass conc [g/m3]
- real      :: dz(kts:kte)        !layer thickness [m]
- real, intent(out)   :: tau(its:ite, kts:kte,jts:jte,nband)      !total aerosol optical depth
- real, intent(out)   :: ssa(its:ite, kts:kte,jts:jte,nband)      !total aerosol single scattering albedo
- real, intent(out)   :: asy(its:ite, kts:kte,jts:jte,nband)      !total aerosol asymetry factor
+ real(kind_phys)      :: aero(kts:kte,tgmx) !aerosol mass conc [g/m3]
+ real(kind_phys)      :: dz(kts:kte)        !layer thickness [m]
+ real(kind_phys), intent(out)   :: tau(its:ite, kts:kte,jts:jte,nband)      !total aerosol optical depth
+ real(kind_phys), intent(out)   :: ssa(its:ite, kts:kte,jts:jte,nband)      !total aerosol single scattering albedo
+ real(kind_phys), intent(out)   :: asy(its:ite, kts:kte,jts:jte,nband)      !total aerosol asymetry factor
 
 !-----Local variables
  integer :: rhi         !RH index
- real :: rh(kts:kte)      !relative humidity [-]
- real :: ext           !mass extinction coef [m2/g]
- real :: tau_typ(tgmx) !optical depth for each aerosol type [-]
- real :: ssa_typ(tgmx) !single scattering albedo for each aerosol type [-]
- real :: asy_typ(tgmx) !asymetery factor for each aerosol type [-]
- real :: w1, w2        !weight for pressure interpolation
- real :: conv1a
+ real(kind_phys) :: rh(kts:kte)      !relative humidity [-]
+ real(kind_phys) :: ext           !mass extinction coef [m2/g]
+ real(kind_phys) :: tau_typ(tgmx) !optical depth for each aerosol type [-]
+ real(kind_phys) :: ssa_typ(tgmx) !single scattering albedo for each aerosol type [-]
+ real(kind_phys) :: asy_typ(tgmx) !asymetery factor for each aerosol type [-]
+ real(kind_phys) :: w1, w2        !weight for pressure interpolation
+ real(kind_phys) :: conv1a,conv1sulf
 
  do i = its,ite
  do j = jts,jte
@@ -8634,17 +8639,29 @@
  enddo
  do k = kts,kte
    conv1a=(1./alt(i,k,j))*1.e-6
-   aero(k,1)=chem(i,k,j,p_sulf)*conv1a*1.e3*nh4_mfac
+!lzhang  convert ppmv sulfate (and coincidentally MSA) to g / m3
+        conv1sulf = (1.0/alt(i,k,j)) * 1.0e-3 * mw_so4_aer / mwdry
+
+   !aero(k,1)=chem(i,k,j,p_sulf)*conv1a*1.e3*nh4_mfac !lzhang
+   !aero(k,1)=chem(i,k,j,p_sulf)*conv1sulf*nh4_mfac
+   !aero(k,1)=chem(i,k,j,p_sulf)*conv1sulf*1.6
+   aero(k,1)=(chem(i,k,j,p_sulf)+chem(i,k,j,p_msa))*conv1sulf*nh4_mfac
    aero(k,2)=(chem(i,k,j,p_bc1)+chem(i,k,j,p_bc2))*conv1a
    aero(k,3)=(chem(i,k,j,p_oc1))*conv1a*oc_mfac
    aero(k,4)=(chem(i,k,j,p_oc2))*conv1a*oc_mfac
-   aero(k,5)=(chem(i,k,j,p_seas_2))*conv1a
-   aero(k,6)=(chem(i,k,j,p_seas_3))*conv1a
-   aero(k,7)=(chem(i,k,j,p_dust_1))*conv1a*frac(1)
-   aero(k,8)=(chem(i,k,j,p_dust_1))*conv1a*frac(2)
-   aero(k,9)=(chem(i,k,j,p_dust_1))*conv1a*frac(3)
-   aero(k,10)=(chem(i,k,j,p_dust_1))*conv1a*frac(4)
-   aero(k,11)=(chem(i,k,j,p_dust_2))*conv1a
+   !aero(k,5)=(chem(i,k,j,p_seas_1)+chem(i,k,j,p_seas_2))*conv1a !lzhang
+   !aero(k,6)=(chem(i,k,j,p_seas_3)+chem(i,k,j,p_seas_4)+chem(i,k,j,p_seas_5))*conv1a !lzhang
+   aero(k,5)=(chem(i,k,j,p_seas_1)+chem(i,k,j,p_seas_2))*conv1a*5. !lzhang
+   aero(k,6)=(chem(i,k,j,p_seas_3)+chem(i,k,j,p_seas_4)+chem(i,k,j,p_seas_5))*conv1a*5.0 !lzhang
+   aero(k,7)=(chem(i,k,j,p_dust_1))*conv1a*frac(1)*3.
+   aero(k,8)=(chem(i,k,j,p_dust_1))*conv1a*frac(2)*3.
+   aero(k,9)=(chem(i,k,j,p_dust_1))*conv1a*frac(3)*3.
+   aero(k,10)=(chem(i,k,j,p_dust_1))*conv1a*frac(4)*3.
+   aero(k,11)=(chem(i,k,j,p_dust_2))*conv1a*3.
+   !aero(k,11)=(chem(i,k,j,p_dust_2)+chem(i,k,j,p_dust_3)+chem(i,k,j,p_dust_4)+chem(i,k,j,p_dust_5))*conv1a*3.0
+   aero(k,12)=(chem(i,k,j,p_dust_3))*conv1a*3.  !lzhang
+   aero(k,13)=(chem(i,k,j,p_dust_4))*conv1a*3. !lzhang
+   aero(k,14)=(chem(i,k,j,p_dust_5))*conv1a*3. !lzhang
  enddo
 
 !
@@ -8667,16 +8684,19 @@
        rad_select: select case(sw_or_lw)
        case ('sw')  !shortwave radiation
             do t = 1,tgmx !aerosol type loop
-               if(rhi == 99) then
+               !if(rhi == 99) then
+               if(rhi == 99.or.tgmx>6) then
                   ext        = Bex(t,n,rhi) 
                   tau_typ(t) = ext * aero(k,t) * dz(k)
                   ssa_typ(t) = w0(t,n,rhi) 
                   asy_typ(t) = g(t,n,rhi)
                else
+                  if (tgmx<=6)  then
                   ext        = w1*Bex(t,n,rhi) + w2*Bex(t,n,rhi+1)
                   tau_typ(t) = ext * aero(k,t) * dz(k)
                   ssa_typ(t) = w1*w0(t,n,rhi) + w2*w0(t,n,rhi+1)
                   asy_typ(t) = w1*g(t,n,rhi) + w2*g(t,n,rhi+1)
+                  endif
                endif
            
              enddo !t

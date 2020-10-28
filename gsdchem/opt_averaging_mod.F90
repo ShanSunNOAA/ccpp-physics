@@ -55,7 +55,7 @@
 
         USE gsd_chem_config, only : p_bc1,p_bc2,p_oc1,p_oc2,      &
               p_msa,p_dust_1,p_dust_2,p_seas_1,p_seas_4,p_sulf,p_p25,p_so2, &
-              p_vash_1,p_vash_4,p_p10
+              p_vash_1,p_vash_4,p_p10,p_dust_5,p_seas_5
 
         USE opt_data_mod
 
@@ -414,7 +414,7 @@
      use dust_data_mod, only:  ndust, lo_dust, up_dust, reff_dust, den_dust
 
    USE seas_data_mod,   only: number_ss_bins, ra, rb
-   USE gsd_chem_config, only: oc_mfac,nh4_mfac
+   USE gsd_chem_config, only: oc_mfac,nh4_mfac,mwdry
   !USE chem_const_mod, only: oc_mfac,nh4_mfac
 
 !
@@ -490,8 +490,9 @@
    real(kind_phys), dimension(1:nbin_o) :: xnum_secti,xnum_sectj,xnum_sectc
    real(kind_phys), dimension(1:nbin_o) :: xmas_secti,xmas_sectj,xmas_sectc
    real(kind_phys), dimension(1:nbin_o) :: xdia_um, xdia_cm
-   REAL(kind_phys), PARAMETER :: FRAC2Aitken=0.25   ! Fraction of modal mass in Aitken mode - applied globally to each species
-
+   !REAL(kind_phys), PARAMETER :: FRAC2Aitken=0.25   ! Fraction of modal mass in Aitken mode - applied globally to each species
+   REAL(kind_phys), PARAMETER :: FRAC2Aitken=0.1   ! Fraction of modal mass in Aitken mode - applied globally to each species
+   real(kind_phys), DIMENSION (ndust), PARAMETER ::distr_dust=(/1.074D-1,1.012D-1,2.078D-1,4.817D-1,1.019D-1/) !lzhang
 ! 7/21/09  SAM variables needed to convert GOCART sectional dust and seasalt to MOZAIC sections
    real(kind_phys)  dgnum, dhi,  dlo, xlo, xhi, dxbin, relh_frc
    real(kind_phys) dlo_sectm(nbin_o), dhi_sectm(nbin_o)
@@ -520,7 +521,8 @@
 !
       sixpi=6.0/3.14159265359
       dlo_um=0.0390625
-      dhi_um=10.0
+      !lzhang  dhi_um=10.0
+      dhi_um=20.0 !lzhang
       drydens=1.8
       iflag=2
       duma=1.0
@@ -553,21 +555,29 @@
        end do
 ! Dust bin mass fractions
        dustfrc_goc8bin=0.
-       dlogoc=0.46*2.E-6 ! Begin lower dust bin, makes upper limit diam 20 micron diameter
+       !dlogoc=0.46*2.E-6 ! Begin lower dust bin, makes upper limit diam 20 micron diameter
        do m =1, ndust  ! loop over dust size bins
-        dhigoc = 4.*reff_dust(m)-dlogoc ! hi diameter limit (m)
+        !dhigoc = 4.*reff_dust(m)-dlogoc ! hi diameter limit (m)
+        dlogoc = 2 * lo_dust(m)  ! low diameter limit (m)
+        dhigoc = 2 * up_dust(m)  ! hi diameter limit (m)
         do n = 1, nbin_o
         dustfrc_goc8bin(m,n)=max(DBLE(0.),min(DBLE(dhi_sectm(n)),dhigoc)- &
                              max(dlogoc,DBLE(dlo_sectm(n))) )/(dhigoc-dlogoc)
+
 ! 7/25/11 Add in missing GOCART mass according to SAMUM 2006 Saharan experiment, Wienzierl et al., Tellus, 2008
 ! Mass fraction  for mass below 0.92 um diam (.135)is average of high and low envelope of size distributions
 ! relative to 0.92 - 3.6 micron GOCART mass bins (bin_1 + bin_2). Binning fractions for MOZAIC bins are
 ! average of high and low envelope size distribution data fractions.
-       if(m.le.2.and.n.eq.2)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.059
-       if(m.le.2.and.n.eq.3)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.167
-       if(m.le.2.and.n.eq.4)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.315
-       if(m.le.2.and.n.eq.5)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.458
-
+!lzhang
+       !if(m.le.2.and.n.eq.2)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.059
+       !if(m.le.2.and.n.eq.3)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.167
+       !if(m.le.2.and.n.eq.4)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.315
+       !if(m.le.2.and.n.eq.5)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+.135*.458
+       
+       if(m.le.2.and.n.eq.2)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+(distr_dust(1)+distr_dust(2))*.059
+       if(m.le.2.and.n.eq.3)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+(distr_dust(1)+distr_dust(2))*.167
+       if(m.le.2.and.n.eq.4)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+(distr_dust(1)+distr_dust(2))*.315
+       if(m.le.2.and.n.eq.5)dustfrc_goc8bin(m,n)=dustfrc_goc8bin(m,n)+(distr_dust(1)+distr_dust(2))*.458
        end do
        dlogoc=dhigoc
        end do
@@ -753,13 +763,16 @@
 ! convert # / kg dry air to # / cc  air
         conv1b = (1.0/alt(i,k,j)) * 1.0e-6
 ! convert ppmv sulfate (and coincidentally MSA) to g / cc  air
-        conv1sulf = (1.0/alt(i,k,j)) * 1.0e-9 * 96./28.97
+        !lzhang conv1sulf = (1.0/alt(i,k,j)) * 1.0e-9 * 96./28.97
+        conv1sulf = (1.0/alt(i,k,j)) * 1.0e-9 * mw_so4_aer / mwdry * 2.5 
 
 ! Accumulation mode...
 ! SAM 7/18/09 - Put fraction of GOCART sulfate, organic, black carbon masses into modal accumulation mode
-        mass_oinj = (1.-FRAC2Aitken)*chem(i,k,j,p_p25)*conv1a
+        mass_oinj = (1.-FRAC2Aitken)*(chem(i,k,j,p_p25)+chem(i,k,j,p_p10))*conv1a
         mass_so4j= (1.-FRAC2Aitken)*chem(i,k,j,p_sulf)*conv1sulf
-        mass_nh4j= (1.-FRAC2Aitken)*chem(i,k,j,p_sulf)*conv1sulf*(nh4_mfac-1.)
+        !mass_nh4j= (1.-FRAC2Aitken)*chem(i,k,j,p_sulf)*conv1sulf*(nh4_mfac-1.)
+        mass_nh4j= (1.-FRAC2Aitken)*chem(i,k,j,p_sulf)*conv1sulf*0.6 !lzhang
+        mass_no3j= (1.-FRAC2Aitken)*chem(i,k,j,p_sulf)*conv1sulf*0.76 !lzhang
         mass_aro1j= (1.-FRAC2Aitken)*chem(i,k,j,p_oc1)*conv1a*oc_mfac
         mass_aro2j= (1.-FRAC2Aitken)*chem(i,k,j,p_oc2)*conv1a*oc_mfac
         mass_bc1j= (1.-FRAC2Aitken)*chem(i,k,j,p_bc1)*conv1a
@@ -770,9 +783,11 @@
 
 ! Aitken mode...
 ! SAM 7/18/09 - Put fraction of GOCART sulfate, organic, black carbon masses into modal Aitken mode
-        mass_oini = FRAC2Aitken*chem(i,k,j,p_p25)*conv1a
+        mass_oini = FRAC2Aitken*(chem(i,k,j,p_p25)+chem(i,k,j,p_p10))*conv1a
         mass_so4i= FRAC2Aitken*chem(i,k,j,p_sulf)*conv1sulf
-        mass_nh4i= FRAC2Aitken*chem(i,k,j,p_sulf)*conv1sulf*(nh4_mfac-1.)
+        !lzhang mass_nh4i= FRAC2Aitken*chem(i,k,j,p_sulf)*conv1sulf*(nh4_mfac-1.)
+        mass_nh4i= FRAC2Aitken*chem(i,k,j,p_sulf)*conv1sulf*0.6 !lzhang
+        mass_no3i= FRAC2Aitken*chem(i,k,j,p_sulf)*conv1sulf*0.76 !lzhang
         mass_aro1i= FRAC2Aitken*chem(i,k,j,p_oc1)*conv1a*oc_mfac
         mass_aro2i= FRAC2Aitken*chem(i,k,j,p_oc2)*conv1a*oc_mfac
         mass_bc1i= FRAC2Aitken*chem(i,k,j,p_bc1)*conv1a
@@ -831,7 +846,8 @@
 ! Add in seasalt and dust from GOCART sectional distributions
        n = 0
        mass_seas = 0.0
-       do m =p_seas_1,  p_seas_4 ! loop over sea salt size bins less than 10 um diam
+       !lzhang do m =p_seas_1,  p_seas_4 ! loop over sea salt size bins less than 10 um diam
+       do m =p_seas_1,  p_seas_5 ! loop over sea salt size bins less than 10 um diam
        n = n+1
         mass_seas=mass_seas+seasfrc_goc8bin(n,isize)*chem(i,k,j,m)
        end do
@@ -843,9 +859,10 @@
 ! some of old dust2, while new dust2 is old dust3.....change this later
 !
        if(chem_opt == 304 .or. chem_opt == 316 .or. chem_opt == 317) pdust=p_dust_2
-       do m =p_dust_1,  pdust ! loop over dust size bins less than 10 um diam
+       !lzhang  do m =p_dust_1,  pdust ! loop over dust size bins less than 10 um diam
+       do m =p_dust_1,  p_dust_5 ! loop over dust size bins less than 20 um diam
        n = n+1
-        mass_soil=mass_soil+dustfrc_goc8bin(n,isize)*chem(i,k,j,m)
+        mass_soil=mass_soil+dustfrc_goc8bin(n,isize)*chem(i,k,j,m)*1.5
        end do
 ! volcanic ash
        if(chem_opt == 317) then
