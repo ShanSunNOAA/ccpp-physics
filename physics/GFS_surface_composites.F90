@@ -146,8 +146,6 @@ contains
             zorl_ocn(i) = zorlo(i)
             tsfc_ocn(i) = tsfco(i)
            tsurf_ocn(i) = tsfco(i)
-!          weasd_ocn(i) = weasd(i)
-!          snowd_ocn(i) = snowd(i)
            weasd_ocn(i) = zero
            snowd_ocn(i) = zero
            semis_ocn(i) = 0.984d0
@@ -472,8 +470,8 @@ contains
             chh(i)    = chh_ice(i)
             gflx(i)   = gflx_ice(i)
             ep1d(i)   = ep1d_ice(i)
-            weasd(i)  = weasd_ice(i)
-            snowd(i)  = snowd_ice(i)
+            weasd(i)  = weasd_ice(i)*cice(i)
+            snowd(i)  = snowd_ice(i)*cice(i)
             qss(i)    = qss_ice(i)
             if (flag_cice(i)) then    ! this was already done for lake ice in sfc_sice
               txi = cice(i)
