@@ -38,8 +38,8 @@ contains
 !!
 !>\section gsd_chem_anthropogenic_wrapper GSD Chemistry Scheme General Algorithm
 !> @{
-    subroutine gsd_chem_anthropogenic_wrapper_run(im, kte, kme, ktau, dt,               &
-                   pr3d, ph3d,phl3d, prl3d, tk3d, spechum,emi_in,                       &
+    subroutine gsd_chem_anthropogenic_wrapper_run(im, kte, kme, ktau, dt, jdate,              &
+                   pr3d, ph3d,phl3d, prl3d, tk3d, spechum,emi12m_in,                       &
                    ntrac,ntso2,ntsulf,ntpp25,ntbc1,ntoc1,ntpp10,                        &
                    gq0,qgrs,abem,chem_opt_in,kemit_in,                                  &
                    errmsg,errflg)
@@ -47,7 +47,7 @@ contains
     implicit none
 
 
-    integer,        intent(in) :: im,kte,kme,ktau
+    integer,        intent(in) :: im,kte,kme,ktau,jdate(8)
     integer,        intent(in) :: ntrac
     integer,        intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
     integer,        intent(in) :: ntsulf
@@ -57,7 +57,7 @@ contains
     integer, parameter :: ims=1,jms=1,jme=1, kms=1
     integer, parameter :: its=1,jts=1,jte=1, kts=1
 
-    real(kind_phys), dimension(im, 10), intent(in) :: emi_in
+    real(kind_phys), dimension(im, 12, 10), intent(in) :: emi12m_in
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d, spechum
     real(kind_phys), dimension(im,kte,ntrac), intent(inout) :: gq0, qgrs
@@ -77,6 +77,7 @@ contains
     real(kind_phys) :: dtstep
     real(kind_phys), dimension(1:num_chem) :: ppm2ugkg
     real(kind_phys), parameter :: ugkg = 1.e-09_kind_phys !lzhang
+    integer :: current_month
 
     integer :: i, j, jp, k, kp, n
   
@@ -93,6 +94,8 @@ contains
     ite=im
     kde=kte
 
+    current_month=jdate(2)
+
     ! -- volume to mass fraction conversion table (ppm -> ug/kg)
     ppm2ugkg         = 1._kind_phys
    !ppm2ugkg(p_so2 ) = 1.e+03_kind_phys * mw_so2_aer / mwdry
@@ -108,8 +111,8 @@ contains
 
 !>- get ready for chemistry run
     call gsd_chem_prep_anthropogenic(                                   &
-        ktau,dtstep,                                                    &
-        pr3d,ph3d,phl3d,tk3d,prl3d,spechum,emi_in,                      &
+        ktau,dtstep,current_month,                                                    &
+        pr3d,ph3d,phl3d,tk3d,prl3d,spechum,emi12m_in,                      &
         rri,t_phy,p_phy,rho_phy,dz8w,p8w,z_at_w,                        & 
         ntso2,ntsulf,ntpp25,ntbc1,ntoc1,ntpp10,ntrac,gq0,               &
         num_chem, num_ebu_in,num_emis_ant,                              &
@@ -151,8 +154,8 @@ contains
 !> @}
 
    subroutine gsd_chem_prep_anthropogenic(                               &
-        ktau,dtstep,                                                     &
-        pr3d,ph3d,phl3d,tk3d,prl3d,spechum,emi_in,                       &
+        ktau,dtstep,current_month,                                                     &
+        pr3d,ph3d,phl3d,tk3d,prl3d,spechum,emi12m_in,                       &
         rri,t_phy,p_phy,rho_phy,dz8w,p8w,z_at_w,                         &
         ntso2,ntsulf,ntpp25,ntbc1,ntoc1,ntpp10,ntrac,gq0,                &
         num_chem, num_ebu_in,num_emis_ant,                               &
@@ -162,14 +165,14 @@ contains
         its,ite, jts,jte, kts,kte)
 
     !Chem input configuration
-    integer, intent(in) :: ktau
+    integer, intent(in) :: ktau, current_month
     real(kind=kind_phys), intent(in) :: dtstep
 
     !FV3 input variables
     integer, intent(in) :: ntrac
     integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
     integer,        intent(in) :: ntsulf
-    real(kind=kind_phys), dimension(ims:ime,    10),   intent(in) :: emi_in
+    real(kind=kind_phys), dimension(ims:ime, 12,  10),   intent(in) :: emi12m_in
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) :: pr3d,ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) :: phl3d,tk3d,prl3d,spechum
     real(kind=kind_phys), dimension(ims:ime, kts:kte,ntrac), intent(in) :: gq0
@@ -268,12 +271,12 @@ contains
     emiss_ab  = 0.   ! background
     do j=jts,jte
      do i=its,ite
-      emiss_ab(i,j,p_e_bc)   =emi_in(i,1)
-      emiss_ab(i,j,p_e_oc)   =emi_in(i,2)
-      emiss_ab(i,j,p_e_sulf) =emi_in(i,3)
-      emiss_ab(i,j,p_e_pm_25)=emi_in(i,4)
-      emiss_ab(i,j,p_e_so2)  =emi_in(i,5)
-      emiss_ab(i,j,p_e_pm_10)=emi_in(i,6)
+      emiss_ab(i,j,p_e_bc)   =emi12m_in(i,current_month,1)
+      emiss_ab(i,j,p_e_oc)   =emi12m_in(i,current_month,2)
+      emiss_ab(i,j,p_e_sulf) =emi12m_in(i,current_month,3)
+      emiss_ab(i,j,p_e_pm_25)=emi12m_in(i,current_month,4)
+      emiss_ab(i,j,p_e_so2)  =emi12m_in(i,current_month,5)
+      emiss_ab(i,j,p_e_pm_10)=emi12m_in(i,current_month,6)
      enddo
     enddo
 

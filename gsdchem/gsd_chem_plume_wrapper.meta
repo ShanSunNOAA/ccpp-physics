@@ -147,11 +147,11 @@
   type = integer
   intent = in
   optional = F
-[fire_GBBEPx]
-  standard_name = emission_fire_GBBEPx
+[fire2_GBBEPx]
+  standard_name = emission_fire2_GBBEPx
   long_name = emission fire GBBEPx
   units = various
-  dimensions = (horizontal_dimension,5)
+  dimensions = (horizontal_dimension,60,5)
   type = real
   kind = kind_phys
   intent = in

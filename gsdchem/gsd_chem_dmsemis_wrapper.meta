@@ -94,6 +94,14 @@
   kind = kind_phys
   intent = in
   optional = F
+[jdate]
+  standard_name = forecast_date_and_time
+  long_name = current forecast date and time
+  units = none
+  dimensions = (8)
+  type = integer
+  intent = in
+  optional = F
 [pr3d]
   standard_name = air_pressure_at_interface
   long_name = air pressure at model layer interfaces
@@ -182,11 +190,11 @@
   type = integer
   intent = in
   optional = F
-[emi_in]
-  standard_name = anthropogenic_background_input
+[emi12m_in]
+  standard_name = anthropogenic_12m_background_input
   long_name = anthropogenic background input
   units = various
-  dimensions = (horizontal_dimension,10)
+  dimensions = (horizontal_dimension,12,10)
   type = real
   kind = kind_phys
   intent = in

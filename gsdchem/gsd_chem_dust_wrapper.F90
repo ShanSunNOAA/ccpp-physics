@@ -42,11 +42,11 @@ contains
 !!
 !>\section gsd_chem_dust_wrapper GSD Chemistry Scheme General Algorithm
 !> @{
-    subroutine gsd_chem_dust_wrapper_run(im, kte, kme, ktau, dt, garea, land,   &
+    subroutine gsd_chem_dust_wrapper_run(im, kte, kme, ktau, dt, garea, land, jdate,   &
                    u10m, v10m, ustar, rlat, rlon, tskin, hf2d, pb2d,            &
                    pr3d, ph3d,phl3d, prl3d, tk3d, us3d, vs3d, spechum,          &
                    nsoil, smc, vegtype, soiltyp, sigmaf, dswsfc, zorl,snow_cpl, &
-                   dust_in,emi_in, nseasalt,ntrac,                              &
+                   dust12m_in,emi12m_in, nseasalt,ntrac,                              &
                    ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ndust,               &
                    gq0,qgrs,duem,                                               &
                    chem_opt_in,dust_opt_in,dust_calcdrag_in,                    &
@@ -56,7 +56,7 @@ contains
     implicit none
 
 
-    integer,        intent(in) :: im,kte,kme,ktau,nsoil
+    integer,        intent(in) :: im,kte,kme,ktau,nsoil,jdate(8)
     integer,        intent(in) :: nseasalt,ntrac
     integer,        intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ndust
     real(kind_phys),intent(in) :: dt
@@ -67,8 +67,8 @@ contains
 
     integer, dimension(im), intent(in) :: land, vegtype, soiltyp        
     real(kind_phys), dimension(im,nsoil), intent(in) :: smc
-    real(kind_phys), dimension(im,    5), intent(in) :: dust_in
-    real(kind_phys), dimension(im,   10), intent(in) :: emi_in
+    real(kind_phys), dimension(im,12, 5), intent(in) :: dust12m_in
+    real(kind_phys), dimension(im,12,10), intent(in) :: emi12m_in
     real(kind_phys), dimension(im), intent(in) :: u10m, v10m, ustar,              &
                 garea, rlat,rlon, tskin,                      &
                 hf2d, pb2d, sigmaf, dswsfc, zorl, snow_cpl 
@@ -130,6 +130,8 @@ contains
     ite=im
     kde=kte
 
+    current_month=jdate(2)
+
     ! -- volume to mass fraction conversion table (ppm -> ug/kg)
     ppm2ugkg         = 1._kind_phys
    !ppm2ugkg(p_so2 ) = 1.e+03_kind_phys * mw_so2_aer / mwdry
@@ -144,11 +146,11 @@ contains
 
 !>- get ready for chemistry run
     call gsd_chem_prep_dust(                                             &
-        ktau,dtstep,                                                     &
+        ktau,dtstep,current_month,                                                     &
         u10m,v10m,ustar,land,garea,rlat,rlon,tskin,                      &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                    &
         nsoil,smc,vegtype,soiltyp,sigmaf,dswsfc,zorl,                    &
-        snow_cpl,dust_in,emi_in,                                         &
+        snow_cpl,dust12m_in,emi12m_in,                                         &
         hf2d,pb2d,u10,v10,ust,tsk,xland,xlat,xlong,dxy,                  &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,t8w,z_at_w,         &
         ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,                         &
@@ -229,11 +231,11 @@ contains
 !> @}
 
    subroutine gsd_chem_prep_dust(                                      &
-        ktau,dtstep,                     &
+        ktau,dtstep,current_month,                     &
         u10m,v10m,ustar,land,garea,rlat,rlon,ts2d,                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                &
         nsoil,smc,vegtype,soiltyp,sigmaf,dswsfc,zorl,                  &
-        snow_cpl,dust_in,emi_in,                               &
+        snow_cpl,dust12m_in,emi12m_in,                               &
         hf2d,pb2d,                              &
         u10,v10,ust,tsk,xland,xlat,xlong,dxy,                          &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,                  &
@@ -251,7 +253,7 @@ contains
         its,ite, jts,jte, kts,kte)
 
     !Chem input configuration
-    integer, intent(in) :: ktau
+    integer, intent(in) :: ktau, current_month
     real(kind=kind_phys), intent(in) :: dtstep
 
     !FV3 input variables
@@ -263,8 +265,8 @@ contains
          u10m, v10m, ustar, garea, rlat, rlon, ts2d, sigmaf, dswsfc,       &
          zorl, snow_cpl, hf2d, pb2d
     real(kind=kind_phys), dimension(ims:ime, nsoil),   intent(in) :: smc 
-    real(kind=kind_phys), dimension(ims:ime,     5),   intent(in) :: dust_in
-    real(kind=kind_phys), dimension(ims:ime,    10),   intent(in) :: emi_in
+    real(kind=kind_phys), dimension(ims:ime, 12, 5),   intent(in) :: dust12m_in
+    real(kind=kind_phys), dimension(ims:ime, 12,10),   intent(in) :: emi12m_in
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) ::     &
          pr3d,ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) ::       &
@@ -351,17 +353,17 @@ contains
      hfx  (i,1)=hf2d(i)
      pbl  (i,1)=pb2d(i)
      snowh(i,1)=snow_cpl(i)*0.001
-     clayf(i,1)=dust_in(i,1)
-     rdrag(i,1)=dust_in(i,2)
-     sandf(i,1)=dust_in(i,3)
-     ssm  (i,1)=dust_in(i,4)
-     uthr (i,1)=dust_in(i,5)
+     clayf(i,1)=dust12m_in(i,current_month,1)
+     rdrag(i,1)=dust12m_in(i,current_month,2)
+     sandf(i,1)=dust12m_in(i,current_month,3)
+     ssm  (i,1)=dust12m_in(i,current_month,4)
+     uthr (i,1)=dust12m_in(i,current_month,5)
      ivgtyp (i,1)=vegtype(i)
      isltyp (i,1)=soiltyp(i)
      vegfrac(i,1)=sigmaf (i)
-     erod (i,1,1)=emi_in(i,8) ! --ero1
-     erod (i,1,2)=emi_in(i,9) ! --ero2
-     erod (i,1,3)=emi_in(i,10)! --ero3
+     erod (i,1,1)=emi12m_in(i,current_month,8) ! --ero1
+     erod (i,1,2)=emi12m_in(i,current_month,9) ! --ero2
+     erod (i,1,3)=emi12m_in(i,current_month,10)! --ero3
     enddo
    
     rmol=0.

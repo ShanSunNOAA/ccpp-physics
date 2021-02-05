@@ -41,16 +41,16 @@ contains
 !>\section gsd_chem_dmsemis_wrapper GSD Chemistry Scheme General Algorithm
 !> @{
     subroutine gsd_chem_dmsemis_wrapper_run(im, kte, kme, dt, garea,       &
-                   land, u10m, v10m, tskin,                                &
+                   land, u10m, v10m, tskin,jdate,                                &
                    pr3d, ph3d,phl3d, prl3d, tk3d, us3d, vs3d, spechum,     &
                    vegtype, soiltyp,                                       & 
-                   emi_in, ntrac, ntdms, gq0, qgrs, dmsemis_opt_in,        &
+                   emi12m_in, ntrac, ntdms, gq0, qgrs, dmsemis_opt_in,        &
                    errmsg,errflg)
 
     implicit none
 
 
-    integer,        intent(in) :: im,kte,kme
+    integer,        intent(in) :: im,kte,kme,jdate(8)
     integer,        intent(in) :: ntrac
     integer,        intent(in) :: ntdms
     real(kind_phys),intent(in) :: dt
@@ -60,7 +60,7 @@ contains
     integer, parameter :: its=1,jts=1,jte=1, kts=1
 
     integer, dimension(im), intent(in) :: land, vegtype, soiltyp        
-    real(kind_phys), dimension(im,10), intent(in) :: emi_in
+    real(kind_phys), dimension(im,12,10), intent(in) :: emi12m_in
     real(kind_phys), dimension(im),    intent(in) :: u10m, v10m, garea, tskin
     real(kind_phys), dimension(im,kme),intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte),intent(in) :: phl3d, prl3d, tk3d, us3d, vs3d, spechum
@@ -78,6 +78,7 @@ contains
     real(kind_phys), dimension(ims:im, jms:jme) :: dms_0
     integer,         dimension(ims:im, jms:jme) :: isltyp, ivgtyp
     integer :: ide, ime, ite, kde
+    integer :: current_month
 
     real(kind_phys), dimension(1:num_chem) :: ppm2ugkg
 
@@ -96,6 +97,8 @@ contains
     ite=im
     kde=kte
 
+    current_month=jdate(2)
+
     ! -- volume to mass fraction conversion table (ppm -> ug/kg)
     ppm2ugkg         = 1._kind_phys
    !ppm2ugkg(p_so2 ) = 1.e+03_kind_phys * mw_so2_aer / mwdry
@@ -104,9 +107,9 @@ contains
 
 !>- get ready for chemistry run
     call gsd_chem_dmsemis_prep(                                         &
-        u10m,v10m,land,garea,tskin,                                     &
+        u10m,v10m,land,garea,tskin,current_month,                                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                   &
-        vegtype,soiltyp,emi_in,u10,v10,tsk,xland,dxy,                   &
+        vegtype,soiltyp,emi12m_in,u10,v10,tsk,xland,dxy,                   &
         rri,t_phy,u_phy,v_phy,rho_phy,dz8w,p8w,                         &
         ntdms,ntrac,gq0,num_chem,ppm2ugkg,                              &
         chem,ivgtyp,isltyp,dms_0,                                       &
@@ -143,9 +146,9 @@ contains
    end subroutine gsd_chem_dmsemis_wrapper_run
 !> @}
   subroutine gsd_chem_dmsemis_prep(                                    &
-        u10m,v10m,land,garea,ts2d,                                     &
+        u10m,v10m,land,garea,ts2d,current_month,                                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                  &
-        vegtype,soiltyp,emi_in,u10,v10,tsk,xland,dxy,                  &
+        vegtype,soiltyp,emi12m_in,u10,v10,tsk,xland,dxy,                  &
         rri,t_phy,u_phy,v_phy,rho_phy,dz8w,p8w,                        &
         ntdms,ntrac,gq0,num_chem,ppm2ugkg,                             &
         chem,ivgtyp,isltyp,dms_0,                                      &
@@ -156,11 +159,11 @@ contains
 
     !FV3 input variables
     integer, dimension(ims:ime), intent(in) :: land, vegtype, soiltyp
-    integer, intent(in) :: ntrac
+    integer, intent(in) :: ntrac, current_month
     integer,        intent(in) :: ntdms
     real(kind=kind_phys), dimension(ims:ime), intent(in) ::                & 
          u10m, v10m, garea, ts2d
-    real(kind=kind_phys), dimension(ims:ime,    10),   intent(in) :: emi_in
+    real(kind=kind_phys), dimension(ims:ime, 12, 10),   intent(in) :: emi12m_in
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) ::     &
          pr3d,ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) ::       &
@@ -217,7 +220,7 @@ contains
      xland(i,1)=real(land(i))
      ivgtyp (i,1)=vegtype(i)
      isltyp (i,1)=soiltyp(i)
-     dms_0(i,1  )=emi_in(i,7) ! --dm0
+     dms_0(i,1  )=emi12m_in(i,current_month,7) ! --dm0
     enddo
    
     do j=jts,jte

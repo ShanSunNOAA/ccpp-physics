@@ -75,6 +75,14 @@
   type = integer
   intent = in
   optional = F
+[jdate]
+  standard_name = forecast_date_and_time
+  long_name = current forecast date and time
+  units = none
+  dimensions = (8)
+  type = integer
+  intent = in
+  optional = F
 [u10m]
   standard_name = x_wind_at_10m
   long_name = 10 meter u wind speed
@@ -288,20 +296,20 @@
   kind = kind_phys
   intent = in
   optional = F
-[dust_in]
-  standard_name = fengsha_dust_input
+[dust12m_in]
+  standard_name = fengsha_dust12m_input
   long_name = fengsha dust input
   units = various
-  dimensions = (horizontal_dimension,5)
+  dimensions = (horizontal_dimension,12,5)
   type = real
   kind = kind_phys
   intent = in
   optional = F
-[emi_in]
-  standard_name = anthropogenic_background_input
+[emi12m_in]
+  standard_name = anthropogenic_12m_background_input
   long_name = anthropogenic background input
   units = various
-  dimensions = (horizontal_dimension,10)
+  dimensions = (horizontal_dimension,12,10)
   type = real
   kind = kind_phys
   intent = in
