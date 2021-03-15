@@ -243,6 +243,7 @@
 !  ---  inputs:
      &       (z1(i), snwdph_lnd(i), thv1, wind(i),
      &        z0max, ztmax, tvs, grav,
+     &         1,
 !  ---  outputs:
      &        rb_lnd(i), fm_lnd(i), fh_lnd(i), fm10_lnd(i), fh2_lnd(i),
      &        cm_lnd(i), ch_lnd(i), stress_lnd(i), ustar_lnd(i))
@@ -278,6 +279,7 @@
 !  ---  inputs:
      &     (z1(i), snwdph_ice(i), thv1, wind(i),
      &      z0max, ztmax, tvs, grav,
+     &         0,
 !  ---  outputs:
      &      rb_ice(i), fm_ice(i), fh_ice(i), fm10_ice(i), fh2_ice(i),
      &      cm_ice(i), ch_ice(i), stress_ice(i), ustar_ice(i))
@@ -322,6 +324,7 @@
 !  ---  inputs:
      &       (z1(i), snwdph_wat(i), thv1, wind(i),
      &        z0max, ztmax, tvs, grav,
+     &         0,
 !  ---  outputs:
      &        rb_wat(i), fm_wat(i), fh_wat(i), fm10_wat(i), fh2_wat(i),
      &        cm_wat(i), ch_wat(i), stress_wat(i), ustar_wat(i))
@@ -381,6 +384,7 @@
       subroutine stability                                              &
 !  ---  inputs:
      &     ( z1, snwdph, thv1, wind, z0max, ztmax, tvs, grav,           &
+     &        ifland,
 !  ---  outputs:
      &       rb, fm, fh, fm10, fh2, cm, ch, stress, ustar)
 !-----
@@ -389,7 +393,7 @@
 !  ---  inputs:
       real(kind=kind_phys), intent(in) ::                               &
      &       z1, snwdph, thv1, wind, z0max, ztmax, tvs, grav
-
+      integer, intent(in) :: ifland
 !  ---  outputs:
       real(kind=kind_phys), intent(out) ::                              &
      &       rb, fm, fh, fm10, fh2, cm, ch, stress, ustar
@@ -417,7 +421,9 @@
           else
             ztmax1 = 99.0_kp
           endif
+          if(ifland.eq.1)then
           if( z0max < 0.05_kp .and. snwdph < 10.0_kp ) ztmax1 = 99.0_kp
+          endif
 
 !  compute stability indices (rb and hlinf)
 
