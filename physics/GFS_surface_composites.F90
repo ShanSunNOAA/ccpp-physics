@@ -351,7 +351,7 @@ contains
 !!
 #endif
    subroutine GFS_surface_composites_post_run (                                                                                   &
-      im, kice, km, cplflx, cplwav2atm, frac_grid, flag_cice, islmsk, dry, wet, icy, landfrac, lakefrac, oceanfrac,               &
+      im, kice, km, cplflx, cplwav2atm, frac_grid, flag_cice, islmsk, dry, wet, icy, wind, landfrac, lakefrac, oceanfrac,         &
       zorl, zorlo, zorll, zorli, zorl_wat, zorl_lnd, zorl_ice,                                                                    &
       cd, cd_wat, cd_lnd, cd_ice, cdq, cdq_wat, cdq_lnd, cdq_ice, rb, rb_wat, rb_lnd, rb_ice, stress, stress_wat, stress_lnd,     &
       stress_ice, ffmm, ffmm_wat, ffmm_lnd, ffmm_ice, ffhh, ffhh_wat, ffhh_lnd, ffhh_ice, uustar, uustar_wat, uustar_lnd,         &
@@ -359,6 +359,8 @@ contains
       cmm, cmm_wat, cmm_lnd, cmm_ice, chh, chh_wat, chh_lnd, chh_ice, gflx, gflx_wat, gflx_lnd, gflx_ice, ep1d, ep1d_wat,         &
       ep1d_lnd, ep1d_ice, weasd, weasd_wat, weasd_lnd, weasd_ice, snowd, snowd_wat, snowd_lnd, snowd_ice, tprcp, tprcp_wat,       &
       tprcp_lnd, tprcp_ice, evap, evap_wat, evap_lnd, evap_ice, hflx, hflx_wat, hflx_lnd, hflx_ice, qss, qss_wat, qss_lnd,        &
+      cdland,cdocean,cdqland,cdqocean,rbland,rbocean,stressland,stressocean,ffmmland,ffmmocean,ffhhland,ffhhocean,    &
+      uustarland,uustarocean,cmmland,cmmocean,chhland,chhocean,   &
       qss_ice, tsfc, tsfco, tsfcl, tsfc_wat, tsfc_lnd, tsfc_ice, tisfc, tice, hice, cice, min_seaice, tiice, stc, errmsg, errflg)
 
       implicit none
@@ -367,7 +369,7 @@ contains
       logical,                              intent(in) :: cplflx, frac_grid, cplwav2atm
       logical, dimension(im),               intent(in) :: flag_cice, dry, wet, icy
       integer, dimension(im),               intent(in) :: islmsk
-      real(kind=kind_phys), dimension(im),  intent(in) :: landfrac, lakefrac, oceanfrac,                                        &
+      real(kind=kind_phys), dimension(im),  intent(in) :: wind, landfrac, lakefrac, oceanfrac,                                  &
         zorl_wat, zorl_lnd, zorl_ice, cd_wat, cd_lnd, cd_ice, cdq_wat, cdq_lnd, cdq_ice, rb_wat, rb_lnd, rb_ice, stress_wat,    &
         stress_lnd, stress_ice, ffmm_wat, ffmm_lnd, ffmm_ice, ffhh_wat, ffhh_lnd, ffhh_ice, uustar_wat, uustar_lnd, uustar_ice, &
         fm10_wat, fm10_lnd, fm10_ice, fh2_wat, fh2_lnd, fh2_ice, tsurf_wat, tsurf_lnd, tsurf_ice, cmm_wat, cmm_lnd, cmm_ice,    &
@@ -376,7 +378,10 @@ contains
         hflx_ice, qss_wat, qss_lnd, qss_ice, tsfc_wat, tsfc_lnd, tsfc_ice
 
       real(kind=kind_phys), dimension(im),  intent(inout) :: zorl, zorlo, zorll, zorli, cd, cdq, rb, stress, ffmm, ffhh, uustar, fm10, &
-        fh2, tsurf, cmm, chh, gflx, ep1d, weasd, snowd, tprcp, evap, hflx, qss, tsfc, tsfco, tsfcl, tisfc
+        fh2, tsurf, cmm, chh, gflx, ep1d, weasd, snowd, tprcp, evap, hflx, qss, tsfc, tsfco, tsfcl, tisfc, &
+      cdland,cdocean,cdqland,cdqocean,rbland,rbocean,stressland,stressocean,ffmmland,ffmmocean,ffhhland,ffhhocean,    &
+      uustarland,uustarocean,cmmland,cmmocean,chhland,chhocean
+
 
       real(kind=kind_phys), dimension(im),  intent(in   ) :: tice ! interstitial sea ice temperature
       real(kind=kind_phys), dimension(im),  intent(inout) :: hice, cice
@@ -408,20 +413,24 @@ contains
           txi   = cice(i) * wfrac        ! txi = ice fraction wrt whole cell
           txo   = max(zero, wfrac-txi)   ! txo = open water fraction
 
-          zorl(i)   = txl*zorl_lnd(i)   + txi*zorl_ice(i)   + txo*zorl_wat(i)
-          cd(i)     = txl*cd_lnd(i)     + txi*cd_ice(i)     + txo*cd_wat(i)
-          cdq(i)    = txl*cdq_lnd(i)    + txi*cdq_ice(i)    + txo*cdq_wat(i)
-          rb(i)     = txl*rb_lnd(i)     + txi*rb_ice(i)     + txo*rb_wat(i)
-          stress(i) = txl*stress_lnd(i) + txi*stress_ice(i) + txo*stress_wat(i)
-          ffmm(i)   = txl*ffmm_lnd(i)   + txi*ffmm_ice(i)   + txo*ffmm_wat(i)
-          ffhh(i)   = txl*ffhh_lnd(i)   + txi*ffhh_ice(i)   + txo*ffhh_wat(i)
-          uustar(i) = txl*uustar_lnd(i) + txi*uustar_ice(i) + txo*uustar_wat(i)
-          fm10(i)   = txl*fm10_lnd(i)   + txi*fm10_ice(i)   + txo*fm10_wat(i)
-          fh2(i)    = txl*fh2_lnd(i)    + txi*fh2_ice(i)    + txo*fh2_wat(i)
+! BWG          zorl(i)   = txl*zorl_lnd(i)   + txi*zorl_ice(i)   + txo*zorl_wat(i)
+! BWG          cd(i)     = txl*cd_lnd(i)     + txi*cd_ice(i)     + txo*cd_wat(i)
+! BWG          cdq(i)    = txl*cdq_lnd(i)    + txi*cdq_ice(i)    + txo*cdq_wat(i)
+! BWG          rb(i)     = txl*rb_lnd(i)     + txi*rb_ice(i)     + txo*rb_wat(i)
+! BWG          stress(i) = txl*stress_lnd(i) + txi*stress_ice(i) + txo*stress_wat(i)
+! BWG          ffmm(i)   = txl*ffmm_lnd(i)   + txi*ffmm_ice(i)   + txo*ffmm_wat(i)
+! BWG          ffhh(i)   = txl*ffhh_lnd(i)   + txi*ffhh_ice(i)   + txo*ffhh_wat(i)
+! BWG          uustar(i) = txl*uustar_lnd(i) + txi*uustar_ice(i) + txo*uustar_wat(i)
+! BWG          fm10(i)   = txl*fm10_lnd(i)   + txi*fm10_ice(i)   + txo*fm10_wat(i)
+! BWG          fh2(i)    = txl*fh2_lnd(i)    + txi*fh2_ice(i)    + txo*fh2_wat(i)
+
          !tsurf(i)  = txl*tsurf_lnd(i)  + txi*tice(i)       + txo*tsurf_wat(i)
          !tsurf(i)  = txl*tsurf_lnd(i)  + txi*tsurf_ice(i)  + txo*tsurf_wat(i) ! not used again! Moorthi
-          cmm(i)    = txl*cmm_lnd(i)    + txi*cmm_ice(i)    + txo*cmm_wat(i)
-          chh(i)    = txl*chh_lnd(i)    + txi*chh_ice(i)    + txo*chh_wat(i)
+
+! BWG: cmm=cd*wind, chh=cdq*wind, so use composite cd, cq
+          cmm(i)    =  cd(i)*wind(i)   !txl*cmm_lnd(i)    + txi*cmm_ice(i)    + txo*cmm_wat(i)
+          chh(i)    = cdq(i)*wind(i)   !txl*chh_lnd(i)    + txi*chh_ice(i)    + txo*chh_wat(i)
+
          !gflx(i)   = txl*gflx_lnd(i)   + txi*gflx_ice(i)   + txo*gflx_wat(i)
           ep1d(i)   = txl*ep1d_lnd(i)   + txi*ep1d_ice(i)   + txo*ep1d_wat(i)
          !weasd(i)  = txl*weasd_lnd(i)  + txi*weasd_ice(i)  + txo*weasd_wat(i)
@@ -447,6 +456,26 @@ contains
           zorli(i) = zorl_ice(i)
           zorlo(i) = zorl_wat(i)
   
+            cdland(i) = cd_lnd(i)
+            cdqland(i) = cdq_lnd(i)
+            rbland(i) = rb_lnd(i)
+            stressland(i) = stress_lnd(i)
+            ffmmland(i) = ffmm_lnd(i)
+            ffhhland(i) = ffhh_lnd(i)
+            uustarland(i) = uustar_lnd(i)
+            cmmland(i) = cmm_lnd(i)
+            chhland(i) = chh_lnd(i)
+
+            cdocean(i) = cd_wat(i)
+            cdqocean(i) = cdq_wat(i)
+            rbocean(i) = rb_wat(i)
+            stressocean(i) = stress_wat(i)
+            ffmmocean(i) = ffmm_wat(i)
+            ffhhocean(i) = ffhh_wat(i)
+            uustarocean(i) = uustar_wat(i)
+            cmmocean(i) = cmm_wat(i)
+            chhocean(i) = chh_wat(i)
+
           if (dry(i)) then
             tsfcl(i) = tsfc_lnd(i)       ! over land
           elseif (wet(i)) then
