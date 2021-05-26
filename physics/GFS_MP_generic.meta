@@ -701,6 +701,15 @@
   kind = kind_phys
   intent = inout
   optional = F
+[rain_cplchm]
+  standard_name = lwe_thickness_of_precipitation_amount_for_chemcoupling
+  long_name = total rain precipitation chem
+  units = m
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
 [rainc_cpl]
   standard_name = lwe_thickness_of_convective_precipitation_amount_for_coupling
   long_name = total convective precipitation
@@ -713,6 +722,15 @@
 [snow_cpl]
   standard_name = lwe_thickness_of_snow_amount_for_coupling
   long_name = total snow precipitation
+  units = m
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[snow_cplchm]
+  standard_name = lwe_thickness_of_snow_amount_for_chemcoupling
+  long_name = total snow precipitation chem
   units = m
   dimensions = (horizontal_loop_extent)
   type = real

@@ -43,7 +43,7 @@ contains
     subroutine gsd_chem_drydep_wrapper_run(im, kte, kme, ktau, dt, land,      &
                    ustar, rlat, rlon, tskin, julian, rainc_cpl, hf2d, pb2d,   &
                    pr3d, ph3d, phl3d, prl3d, tk3d, spechum, exch,             &
-                   vegtype, sigmaf, jdate, idat, dswsfc, zorl, snow_cpl,      & 
+                   vegtype, sigmaf, jdate, idat, dswsfc, zorl, snow_cplchm,      & 
                    ntrac,ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                     &
                    ntbc1,ntbc2,ntoc1,ntoc2,ntss1,ntss2,ntss3,ntss4,ntss5,     &
                    ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,            &
@@ -67,7 +67,7 @@ contains
     integer, dimension(im), intent(in) :: land, vegtype     
     real(kind_phys), dimension(im), intent(in) :: ustar,                  &
                 rlat,rlon, tskin, rainc_cpl,                              &
-                hf2d, pb2d, sigmaf, dswsfc, zorl, snow_cpl
+                hf2d, pb2d, sigmaf, dswsfc, zorl, snow_cplchm
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d, spechum, exch
     real(kind_phys), dimension(im,kte,ntrac), intent(inout) :: gq0, qgrs
@@ -151,7 +151,7 @@ contains
     call gsd_chem_prep_drydep(                                          &
         ustar,land,rlat,rlon,tskin,                                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,spechum,exch,                        &
-        vegtype,sigmaf,dswsfc,zorl,snow_cpl,hf2d,pb2d,                  &
+        vegtype,sigmaf,dswsfc,zorl,snow_cplchm,hf2d,pb2d,                  &
         ust,tsk,xland,xlat,xlong,                                       &
         rri,t_phy,p_phy,rho_phy,dz8w,p8w,                               &
         t8w,exch_h,z_at_w,zmid,                                         &
@@ -242,7 +242,7 @@ contains
   subroutine gsd_chem_prep_drydep(                                     &
         ustar,land,rlat,rlon,ts2d,                                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,spechum,exch,                       &
-        vegtype,sigmaf,dswsfc,zorl,snow_cpl,hf2d,pb2d,                 &
+        vegtype,sigmaf,dswsfc,zorl,snow_cplchm,hf2d,pb2d,                 &
         ust,tsk,xland,xlat,xlong,                                      &
         rri,t_phy,p_phy,rho_phy,dz8w,p8w,                              &
         t8w,exch_h,z_at_w,zmid,                                        &
@@ -263,7 +263,7 @@ contains
     integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
     integer, intent(in) :: ntsulf,ntbc2,ntoc2,ntDMS,ntmsa
     real(kind=kind_phys), dimension(ims:ime), intent(in) ::                & 
-         ustar, rlat, rlon, ts2d, sigmaf, dswsfc, zorl, snow_cpl, hf2d, pb2d
+         ustar, rlat, rlon, ts2d, sigmaf, dswsfc, zorl, snow_cplchm, hf2d, pb2d
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) :: pr3d,ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) :: phl3d,tk3d,prl3d,spechum,exch
     real(kind=kind_phys), dimension(ims:ime, kts:kte,ntrac), intent(in) :: gq0
@@ -332,7 +332,7 @@ contains
      znt  (i,1)=zorl(i)*0.01
      hfx  (i,1)=hf2d(i)
      pbl  (i,1)=pb2d(i)
-     snowh(i,1)=snow_cpl(i)*0.001
+     snowh(i,1)=snow_cplchm(i)*0.001
      ivgtyp (i,1)=vegtype(i)
      vegfrac(i,1)=sigmaf (i)
     enddo

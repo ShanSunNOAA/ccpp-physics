@@ -43,7 +43,7 @@ contains
 !>\section gsd_chem_lsdep_wrapper GSD Chemistry Scheme General Algorithm
 !> @{
     subroutine gsd_chem_lsdep_wrapper_run(im, kte, kme, ktau, dt,       &
-                   rain_cpl, rainc_cpl,                                 &
+                   rain_cplchm, rainc_cpl,                                 &
                    pr3d, ph3d,phl3d, prl3d, tk3d, us3d, vs3d, spechum,  &
                    w, dqdt, ntrac,ntchmdiag,                            &
                    ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                     &
@@ -67,7 +67,7 @@ contains
     integer, parameter :: ims=1,jms=1,jme=1, kms=1
     integer, parameter :: its=1,jts=1,jte=1, kts=1
 
-    real(kind_phys), dimension(im),     intent(in) :: rain_cpl, rainc_cpl
+    real(kind_phys), dimension(im),     intent(in) :: rain_cplchm, rainc_cpl
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d,        &
                 us3d, vs3d, spechum, w, dqdt
@@ -133,7 +133,7 @@ contains
     ! -- compute incremental convective and large-scale rainfall
     do i=its,ite
      rcav(i,1)=max(rainc_cpl(i)*1000.              , 0.) ! meter to mm
-     rnav(i,1)=max((rain_cpl(i)-rainc_cpl(i))*1000., 0.) ! meter to mm
+     rnav(i,1)=max((rain_cplchm(i)-rainc_cpl(i))*1000., 0.) ! meter to mm
     enddo
 
 !!!

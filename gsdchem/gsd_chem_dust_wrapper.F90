@@ -45,7 +45,7 @@ contains
     subroutine gsd_chem_dust_wrapper_run(im, kte, kme, ktau, dt, garea, land,   &
                    u10m, v10m, ustar, rlat, rlon, tskin, hf2d, pb2d,            &
                    pr3d, ph3d,phl3d, prl3d, tk3d, us3d, vs3d, spechum,          &
-                   nsoil, smc, vegtype, soiltyp, sigmaf, dswsfc, zorl,snow_cpl, &
+                   nsoil, smc, vegtype, soiltyp, sigmaf, dswsfc, zorl,snow_cplchm, &
                    dust_in,emi_in, nseasalt,ntrac,                              &
                    ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ndust,               &
                    gq0,qgrs,duem,                                               &
@@ -74,7 +74,7 @@ contains
     real(kind_phys), dimension(im,   10), intent(in) :: emi_in
     real(kind_phys), dimension(im), intent(in) :: u10m, v10m, ustar,              &
                 garea, rlat,rlon, tskin,                      &
-                hf2d, pb2d, sigmaf, dswsfc, zorl, snow_cpl 
+                hf2d, pb2d, sigmaf, dswsfc, zorl, snow_cplchm 
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d,        &
                 us3d, vs3d, spechum
@@ -161,7 +161,7 @@ contains
         u10m,v10m,ustar,land,garea,rlat,rlon,tskin,                      &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                    &
         nsoil,smc,vegtype,soiltyp,sigmaf,dswsfc,zorl,                    &
-        snow_cpl,dust_in,emi_in,                                         &
+        snow_cplchm,dust_in,emi_in,                                         &
         hf2d,pb2d,u10,v10,ust,tsk,xland,xlat,xlong,dxy,                  &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,t8w,z_at_w,         &
         ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,                         &
@@ -251,7 +251,7 @@ contains
         u10m,v10m,ustar,land,garea,rlat,rlon,ts2d,                     &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,                &
         nsoil,smc,vegtype,soiltyp,sigmaf,dswsfc,zorl,                  &
-        snow_cpl,dust_in,emi_in,                               &
+        snow_cplchm,dust_in,emi_in,                               &
         hf2d,pb2d,                              &
         u10,v10,ust,tsk,xland,xlat,xlong,dxy,                          &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,                  &
@@ -279,7 +279,7 @@ contains
     integer, intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5
     real(kind=kind_phys), dimension(ims:ime), intent(in) ::                & 
          u10m, v10m, ustar, garea, rlat, rlon, ts2d, sigmaf, dswsfc,       &
-         zorl, snow_cpl, hf2d, pb2d
+         zorl, snow_cplchm, hf2d, pb2d
     real(kind=kind_phys), dimension(ims:ime, nsoil),   intent(in) :: smc 
     real(kind=kind_phys), dimension(ims:ime,     5),   intent(in) :: dust_in
     real(kind=kind_phys), dimension(ims:ime,    10),   intent(in) :: emi_in
@@ -368,7 +368,7 @@ contains
      znt  (i,1)=zorl(i)*0.01
      hfx  (i,1)=hf2d(i)
      pbl  (i,1)=pb2d(i)
-     snowh(i,1)=snow_cpl(i)*0.001
+     snowh(i,1)=snow_cplchm(i)*0.001
      clayf(i,1)=dust_in(i,1)
      rdrag(i,1)=dust_in(i,2)
      sandf(i,1)=dust_in(i,3)

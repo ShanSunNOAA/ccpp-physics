@@ -42,7 +42,7 @@ contains
 !> @{
     subroutine gsd_chem_plume_wrapper_run(im, kte, kme, ktau, dt,                &
                    pr3d, ph3d,phl3d, prl3d, tk3d, us3d, vs3d, spechum,           &
-                   w,vegtype,fire_GBBEPx,fire_MODIS,                             &
+                   w,vegtype,garea,fire2_GBBEPx,fire_MODIS,                      &
                    ntrac,ntso2,ntpp25,ntbc1,ntoc1,ntpp10,                        &
                    gq0,qgrs,ebu,abem,biomass_burn_opt_in,plumerise_flag_in,      &
                    plumerisefire_frq_in,pert_scale_plume,                        &
@@ -62,7 +62,8 @@ contains
     logical,        intent(in) :: do_sppt_emis
     real(kind_phys), optional, intent(in) :: sppt_wts(:,:)
     integer, dimension(im), intent(in) :: vegtype    
-    real(kind_phys), dimension(im,    5), intent(in) :: fire_GBBEPx
+    real(kind_phys), dimension(im), intent(in) :: garea    
+    real(kind_phys), dimension(im, 31, 5), intent(in) :: fire2_GBBEPx
     real(kind_phys), dimension(im,   13), intent(in) :: fire_MODIS
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d,        &
@@ -126,7 +127,8 @@ contains
     ppm2ugkg(p_sulf) = 1.e+03_kind_phys * mw_so4_aer / mwdry
 
     ! -- set control flags
-    call_plume       = (biomass_burn_opt == BURN_OPT_ENABLE) .and. (plumerisefire_frq > 0)
+    !call_plume       = (biomass_burn_opt == BURN_OPT_ENABLE) .and. (plumerisefire_frq > 0)
+    call_plume       = (biomass_burn_opt >= BURN_OPT_ENABLE) .and. (plumerisefire_frq > 0)
     if (call_plume) &
        call_plume    = (mod(int(curr_secs), max(1, 60*plumerisefire_frq)) == 0)      &
                         .or. (ktau == 1)
@@ -142,7 +144,7 @@ contains
 !>- get ready for chemistry run
     call gsd_chem_prep_plume(ktau,dtstep,                               &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,w,                 &
-        vegtype,fire_GBBEPx,fire_MODIS,                                 &
+        vegtype,garea,fire2_GBBEPx,fire_MODIS,                          &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,                   &
         z_at_w,vvel,                                                    &
         ntso2,ntpp25,ntbc1,ntoc1,ntpp10,ntrac,gq0,                      &
@@ -171,7 +173,7 @@ contains
     end if
 
     ! -- add biomass burning emissions at every timestep
-    if (biomass_burn_opt == BURN_OPT_ENABLE) then
+    if (biomass_burn_opt >= BURN_OPT_ENABLE) then
       jp = jte
 
       if(plumerise_flag == FIRE_OPT_GBBEPx .and. do_sppt_emis) then
@@ -261,24 +263,24 @@ contains
    end subroutine gsd_chem_plume_wrapper_run
 !> @}
 
-   subroutine gsd_chem_prep_plume(                                        &
-        ktau,dtstep,                     &
+   subroutine gsd_chem_prep_plume(                                     &
+        ktau,dtstep,                                                   &
         pr3d,ph3d,phl3d,tk3d,prl3d,us3d,vs3d,spechum,w,                &
-        vegtype,                  &
-        fire_GBBEPx,fire_MODIS,                              &
+        vegtype,garea,                                                 &
+        fire2_GBBEPx,fire_MODIS,                                       &
         rri,t_phy,u_phy,v_phy,p_phy,rho_phy,dz8w,p8w,                  &
-        z_at_w,vvel,                                              &
-        ntso2,ntpp25,                               &
-        ntbc1,ntoc1,                                       &
-        ntpp10,                &
+        z_at_w,vvel,                                                   &
+        ntso2,ntpp25,                                                  &
+        ntbc1,ntoc1,                                                   &
+        ntpp10,                                                        &
         ntrac,gq0,                                                     &
         num_chem, num_moist,num_ebu_in,                                &
-        plumerise_flag,num_plume_data,                    &
-        ppm2ugkg,                                             &
+        plumerise_flag,num_plume_data,                                 &
+        ppm2ugkg,                                                      &
         mean_fct_agtf,mean_fct_agef,mean_fct_agsv,mean_fct_aggr,       &
         firesize_agtf,firesize_agef,firesize_agsv,firesize_aggr,       &
         moist,chem,plumedist,ebu_in,                                   &
-        ivgtyp,              &
+        ivgtyp,                                                        &
         ids,ide, jds,jde, kds,kde,                                     &
         ims,ime, jms,jme, kms,kme,                                     &
         its,ite, jts,jte, kts,kte)
@@ -291,9 +293,10 @@ contains
     integer, dimension(ims:ime), intent(in) :: vegtype
     integer, intent(in) :: ntrac
     integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
-    real(kind=kind_phys), dimension(ims:ime,     5),   intent(in) :: fire_GBBEPx
+    real(kind=kind_phys), dimension(ims:ime), intent(in) ::garea
+    real(kind=kind_phys), dimension(ims:ime, 31, 5),   intent(in) :: fire2_GBBEPx
     real(kind=kind_phys), dimension(ims:ime,    13),   intent(in) :: fire_MODIS
-    real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) ::     &
+    real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) ::       &
          pr3d,ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) ::       &
          phl3d,tk3d,prl3d,us3d,vs3d,spechum,w
@@ -332,6 +335,9 @@ contains
 !   real(kind=kind_phys), dimension(ims:ime, kms:kme, jms:jme) :: p_phy
     real(kind_phys) ::  factor,factor2
     integer i,ip,j,jp,k,kp,kk,kkp,l,ll,n
+    integer nday ! (order of fcst days)
+
+    nday=ktau*int(dtstep)/86400+1  ! order to read fire emission days
 
     ! -- initialize output arrays
     ebu_in         = 0._kind_phys
@@ -459,11 +465,15 @@ contains
       case (FIRE_OPT_GBBEPx)
         do j=jts,jte
          do i=its,ite
-          emiss_abu(i,j,p_e_bc)   =fire_GBBEPx(i,1)
-          emiss_abu(i,j,p_e_oc)   =fire_GBBEPx(i,2)
-          emiss_abu(i,j,p_e_pm_25)=fire_GBBEPx(i,3)
-          emiss_abu(i,j,p_e_so2)  =fire_GBBEPx(i,4)
-          plume(i,j,1)            =fire_GBBEPx(i,5)
+          emiss_abu(i,j,p_e_bc)   =fire2_GBBEPx(i,nday,1)
+          emiss_abu(i,j,p_e_oc)   =fire2_GBBEPx(i,nday,2)
+          emiss_abu(i,j,p_e_pm_25)=fire2_GBBEPx(i,nday,3)
+          emiss_abu(i,j,p_e_so2)  =fire2_GBBEPx(i,nday,4)
+          if (biomass_burn_opt == 1) then
+            plume(i,j,1)          =fire2_GBBEPx(i,nday,5)
+          else if (biomass_burn_opt == 2) then 
+            plume(i,j,1)          =fire2_GBBEPx(i,nday,5)*1e-6*garea(i) !lzhang
+          endif
          enddo
         enddo
 !        print*,'hli GBBEPx plume',maxval(plume(:,:,1))

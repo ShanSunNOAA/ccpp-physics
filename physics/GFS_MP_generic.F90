@@ -88,7 +88,7 @@
         imp_physics_thompson, imp_physics_mg, imp_physics_fer_hires, cal_pre, lssav, ldiag3d, qdiag3d, cplflx, cplchm, con_g, dtf, frain, rainc, rain1,   &
         rann, xlat, xlon, gt0, gq0, prsl, prsi, phii, tsfc, ice, snow, graupel, save_t, save_qv, rain0, ice0, snow0,      &
         graupel0, del, rain, domr_diag, domzr_diag, domip_diag, doms_diag, tprcp, srflag, sr, cnvprcp, totprcp, totice,   &
-        totsnw, totgrp, cnvprcpb, totprcpb, toticeb, totsnwb, totgrpb, dt3dt, dq3dt, rain_cpl, rainc_cpl, snow_cpl, pwat, &
+        totsnw, totgrp, cnvprcpb, totprcpb, toticeb, totsnwb, totgrpb, dt3dt, dq3dt, rain_cpl,rain_cplchm, rainc_cpl, snow_cpl, snow_cplchm, pwat, &
         drain_cpl, dsnow_cpl, lsm, lsm_ruc, lsm_noahmp, raincprv, rainncprv, iceprv, snowprv,                             &
         graupelprv, draincprv, drainncprv, diceprv, dsnowprv, dgraupelprv, dtp, errmsg, errflg)
 !
@@ -112,8 +112,8 @@
       real(kind=kind_phys), dimension(im),      intent(in   ) :: sr
       real(kind=kind_phys), dimension(im),      intent(inout) :: rain, domr_diag, domzr_diag, domip_diag, doms_diag, tprcp,  &
                                                                  srflag, cnvprcp, totprcp, totice, totsnw, totgrp, cnvprcpb, &
-                                                                 totprcpb, toticeb, totsnwb, totgrpb, rain_cpl, rainc_cpl,   &
-                                                                 snow_cpl, pwat
+                                                                 totprcpb, toticeb, totsnwb, totgrpb, rain_cpl, rain_cplchm, rainc_cpl,   &
+                                                                 snow_cpl, snow_cplchm,pwat
 
       real(kind=kind_phys), dimension(:,:),     intent(inout) :: dt3dt ! only if ldiag3d
       real(kind=kind_phys), dimension(:,:),     intent(inout) :: dq3dt ! only if ldiag3d and qdiag3d
@@ -358,7 +358,9 @@
           dsnow_cpl(i)= max(zero, rain(i) * srflag(i))
           drain_cpl(i)= max(zero, rain(i) - dsnow_cpl(i))
           rain_cpl(i) = rain_cpl(i) + drain_cpl(i)
+          rain_cplchm(i) = rain_cplchm(i) + drain_cpl(i)
           snow_cpl(i) = snow_cpl(i) + dsnow_cpl(i)
+          snow_cplchm(i) = snow_cplchm(i) + dsnow_cpl(i)
         enddo
       endif
 

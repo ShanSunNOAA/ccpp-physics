@@ -252,9 +252,9 @@
   kind = kind_phys
   intent = in
   optional = F
-[snow_cpl]
-  standard_name = lwe_thickness_of_snow_amount_for_coupling
-  long_name = total snow precipitation
+[snow_cplchm]
+  standard_name = lwe_thickness_of_snow_amount_for_chemcoupling
+  long_name = total snow precipitation chem
   units = m
   dimensions = (horizontal_dimension)
   type = real
