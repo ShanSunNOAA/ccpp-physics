@@ -63,7 +63,7 @@ contains
                 fn_nml2, jdat, lonr, latr, levs, ak, bk, dtp, cdmbgwd, cgwf,   &
                 con_pi, con_rerth, pa_rf_in, tau_rf_in, con_p0, do_ugwp,       &
                 do_ugwp_v0, do_ugwp_v0_orog_only, do_ugwp_v0_nst_only,         &
-                do_gsl_drag_ls_bl, do_gsl_drag_ss, do_gsl_drag_tofd,           &
+                do_gsl_drag_ls_bl, do_gsl_drag_ss, do_gsl_drag_tofd, gwd_opt,  &
                 errmsg, errflg)
 
 !----  initialization of unified_ugwp
@@ -74,13 +74,13 @@ contains
     integer,              intent (in) :: nlunit
     character(len=*),     intent (in) :: input_nml_file(:)
     integer,              intent (in) :: logunit
-    integer,              intent(in)  :: jdat(8)
+    integer,              intent (in) :: jdat(:)
     integer,              intent (in) :: lonr
     integer,              intent (in) :: levs
     integer,              intent (in) :: latr
     real(kind=kind_phys), intent (in) :: ak(:), bk(:)
     real(kind=kind_phys), intent (in) :: dtp
-    real(kind=kind_phys), intent (in) :: cdmbgwd(4), cgwf(2) ! "scaling" controls for "old" GFS-GW schemes
+    real(kind=kind_phys), intent (in) :: cdmbgwd(:), cgwf(:) ! "scaling" controls for "old" GFS-GW schemes
     real(kind=kind_phys), intent (in) :: pa_rf_in, tau_rf_in
     real(kind=kind_phys), intent (in) :: con_p0, con_pi, con_rerth
     logical,              intent (in) :: do_ugwp
@@ -96,7 +96,8 @@ contains
     logical :: exists
     real    :: dxsg
     integer :: k
-
+    
+    integer,          intent(in)  :: gwd_opt
     character(len=*), intent(out) :: errmsg
     integer,          intent(out) :: errflg
 
@@ -104,6 +105,13 @@ contains
     errmsg = ''
     errflg = 0
 
+    ! Consistency checks
+    if (gwd_opt/=2 .and. gwd_opt/=22) then
+      write(errmsg,'(*(a))') "Logic error: namelist choice of gravity wave &
+        & drag is different from unified_ugwp scheme"
+      errflg = 1
+      return
+    end if
 
     ! Test to make sure that at most only one large-scale/blocking
     ! orographic drag scheme is chosen
@@ -203,10 +211,11 @@ contains
          ugrs, vgrs, tgrs, q1, prsi, prsl, prslk, phii, phil,                          &
          del, kpbl, dusfcg, dvsfcg, gw_dudt, gw_dvdt, gw_dtdt, gw_kdis,                &
          tau_tofd, tau_mtb, tau_ogw, tau_ngw, zmtb, zlwb, zogw,                        &
-         dudt_mtb, dudt_tms, du3dt_mtb, du3dt_ogw, du3dt_tms,      &
+         dudt_mtb, dudt_tms, du3dt_mtb, du3dt_ogw, du3dt_tms,                          &
          dudt, dvdt, dtdt, rdxzb, con_g, con_omega, con_pi, con_cp, con_rd, con_rv,    &
          con_rerth, con_fvirt, rain, ntke, q_tke, dqdt_tke, lprnt, ipr,                &
-         ldu3dt_ogw, ldv3dt_ogw, ldt3dt_ogw, ldu3dt_cgw, ldv3dt_cgw, ldt3dt_cgw,       &
+         dtend, dtidx, index_of_temperature, index_of_x_wind, index_of_y_wind,         &
+         index_of_process_orographic_gwd, index_of_process_nonorographic_gwd,          &
          ldiag3d, lssav, flag_for_gwd_generic_tend, do_ugwp_v0, do_ugwp_v0_orog_only,  &
          do_ugwp_v0_nst_only, do_gsl_drag_ls_bl, do_gsl_drag_ss, do_gsl_drag_tofd,     &
          gwd_opt, errmsg, errflg)
@@ -216,25 +225,25 @@ contains
     ! interface variables
     integer,                 intent(in) :: me, master, im, levs, ntrac, kdt, lonr, nmtvr
     integer,                 intent(in) :: gwd_opt
-    integer,                 intent(in), dimension(im)       :: kpbl
-    real(kind=kind_phys),    intent(in), dimension(im)       :: oro, oro_uf, hprime, oc, theta, sigma, gamma
-    real(kind=kind_phys),    intent(in), dimension(im)       :: varss,oc1ss, dx
+    integer,                 intent(in), dimension(:)       :: kpbl
+    real(kind=kind_phys),    intent(in), dimension(:)       :: oro, oro_uf, hprime, oc, theta, sigma, gamma
+    real(kind=kind_phys),    intent(in), dimension(:)       :: varss,oc1ss, dx
 
 !vay-nov 2020
-    real(kind=kind_phys),    intent(in), dimension(im,4)     ::  oa4ss,ol4ss   
+    real(kind=kind_phys),    intent(in), dimension(:,:)     ::  oa4ss,ol4ss   
     
-    logical,                 intent(in)                      :: flag_for_gwd_generic_tend
+    logical,                 intent(in)                     :: flag_for_gwd_generic_tend
     
     ! elvmax is intent(in) for CIRES UGWPv1, but intent(inout) for GFS GWDPS
     
-    real(kind=kind_phys),    intent(inout), dimension(im)    :: elvmax
-    real(kind=kind_phys),    intent(in), dimension(im, 4)    :: clx, oa4
-    real(kind=kind_phys),    intent(in), dimension(im)       :: xlat, xlat_d, sinlat, coslat, area
-    real(kind=kind_phys),    intent(in), dimension(im, levs) :: del, ugrs, vgrs, tgrs, prsl, prslk, phil
-    real(kind=kind_phys),    intent(in), dimension(im, levs+1) :: prsi, phii
-    real(kind=kind_phys),    intent(in), dimension(im, levs) :: q1
-    real(kind=kind_phys),    intent(in) :: dtp, fhzero, cdmbgwd(4)
-    integer, intent(in) :: jdat(8)
+    real(kind=kind_phys),    intent(inout), dimension(:)    :: elvmax
+    real(kind=kind_phys),    intent(in),    dimension(:,:)  :: clx, oa4
+    real(kind=kind_phys),    intent(in),    dimension(:)    :: xlat, xlat_d, sinlat, coslat, area
+    real(kind=kind_phys),    intent(in),    dimension(:,:)  :: del, ugrs, vgrs, tgrs, prsl, prslk, phil
+    real(kind=kind_phys),    intent(in),    dimension(:,:)  :: prsi, phii
+    real(kind=kind_phys),    intent(in),    dimension(:,:)  :: q1
+    real(kind=kind_phys),    intent(in) :: dtp, fhzero, cdmbgwd(:)
+    integer, intent(in) :: jdat(:)
     logical,                 intent(in) :: do_tofd, ldiag_ugwp
 
 !Output (optional):
@@ -248,31 +257,32 @@ contains
       &         dtaux2d_ss(:,:),dtauy2d_ss(:,:),                  &
       &         dtaux2d_fd(:,:),dtauy2d_fd(:,:)
 
-    real(kind=kind_phys), intent(in) ::     br1(im),              &
-      &                                     hpbl(im),             &
-      &                                     slmsk(im)
+    real(kind=kind_phys), intent(in) ::     br1(:),               &
+      &                                     hpbl(:),              &
+      &                                     slmsk(:)
 
-    real(kind=kind_phys),    intent(out), dimension(im)         :: dusfcg, dvsfcg
-    real(kind=kind_phys),    intent(out), dimension(im)         :: zmtb, zlwb, zogw, rdxzb
-    real(kind=kind_phys),    intent(out), dimension(im)         :: tau_mtb, tau_ogw, tau_tofd, tau_ngw
-    real(kind=kind_phys),    intent(out), dimension(im, levs)   :: gw_dudt, gw_dvdt, gw_dtdt, gw_kdis
+    real(kind=kind_phys),    intent(out), dimension(:)          :: dusfcg, dvsfcg
+    real(kind=kind_phys),    intent(out), dimension(:)          :: zmtb, zlwb, zogw, rdxzb
+    real(kind=kind_phys),    intent(out), dimension(:)          :: tau_mtb, tau_ogw, tau_tofd, tau_ngw
+    real(kind=kind_phys),    intent(out), dimension(:,:)        :: gw_dudt, gw_dvdt, gw_dtdt, gw_kdis
     real(kind=kind_phys),    intent(out), dimension(:,:)        :: dudt_mtb, dudt_tms
     real(kind=kind_phys),    intent(out), dimension(:,:)        :: dtaux2d_ls, dtauy2d_ls
 
-    ! These arrays are only allocated if ldiag=.true.
-    real(kind=kind_phys),    intent(inout), dimension(:,:)      :: ldu3dt_ogw, ldv3dt_ogw, ldt3dt_ogw
-    real(kind=kind_phys),    intent(inout), dimension(:,:)      :: ldu3dt_cgw, ldv3dt_cgw, ldt3dt_cgw
+    real(kind=kind_phys), intent(inout) :: dtend(:,:,:)
+    integer, intent(in) :: dtidx(:,:), index_of_temperature, index_of_x_wind, &
+         index_of_y_wind, index_of_process_nonorographic_gwd, &
+         index_of_process_orographic_gwd
     logical,                 intent(in)                         :: ldiag3d, lssav
 
     ! These arrays only allocated if ldiag_ugwp = .true.
-    real(kind=kind_phys),    intent(out), dimension(:,:) :: du3dt_mtb, du3dt_ogw, du3dt_tms
+    real(kind=kind_phys),    intent(inout), dimension(:,:) :: du3dt_mtb, du3dt_ogw, du3dt_tms
 
-    real(kind=kind_phys),    intent(inout), dimension(im, levs):: dudt, dvdt, dtdt
+    real(kind=kind_phys),    intent(inout), dimension(:,:) :: dudt, dvdt, dtdt
 
     real(kind=kind_phys),    intent(in) :: con_g, con_omega, con_pi, con_cp, con_rd, &
                                            con_rv, con_rerth, con_fvirt
 
-    real(kind=kind_phys),    intent(in), dimension(im) :: rain
+    real(kind=kind_phys),    intent(in), dimension(:) :: rain
 
     integer,                 intent(in) :: ntke
     real(kind=kind_phys),    intent(in), dimension(:,:) :: q_tke, dqdt_tke
@@ -297,7 +307,7 @@ contains
  
     real(kind=kind_phys), parameter :: tamp_mpa=30.e-3
 
-    integer :: nmtvr_temp
+    integer :: nmtvr_temp, idtend
 
     real(kind=kind_phys), dimension(:,:), allocatable :: tke
     real(kind=kind_phys), dimension(:),   allocatable :: turb_fac, tem
@@ -329,9 +339,11 @@ contains
                  dusfc_ss,dvsfc_ss,dusfc_fd,dvsfc_fd,                &
                  slmsk,br1,hpbl,con_g,con_cp,con_rd,con_rv,          &
                  con_fvirt,con_pi,lonr,                              &
-                 cdmbgwd(1:2),me,master,lprnt,ipr,rdxzb,dx,gwd_opt,  &
+                 cdmbgwd,me,master,lprnt,ipr,rdxzb,dx,gwd_opt,       &
                  do_gsl_drag_ls_bl,do_gsl_drag_ss,do_gsl_drag_tofd,  &
-                 errmsg,errflg)
+                 dtend, dtidx, index_of_process_orographic_gwd,      &
+                 index_of_temperature, index_of_x_wind,              &
+                 index_of_y_wind, ldiag3d, errmsg, errflg)
 !
 ! put zeros due to xy GSL-drag style: dtaux2d_bl,dtauy2d_bl,dtaux2d_ss.......dusfc_ls,dvsfc_ls
 !
@@ -382,13 +394,20 @@ contains
 
 
       if(ldiag3d .and. lssav .and. .not. flag_for_gwd_generic_tend) then
-        do k=1,levs
-          do i=1,im
-             ldu3dt_ogw(i,k) = ldu3dt_ogw(i,k) + Pdudt(i,k)*dtp
-             ldv3dt_ogw(i,k) = ldv3dt_ogw(i,k) + Pdvdt(i,k)*dtp
-             ldt3dt_ogw(i,k) = ldt3dt_ogw(i,k) + Pdtdt(i,k)*dtp
-          enddo
-        enddo
+        idtend = dtidx(index_of_x_wind,index_of_process_orographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdudt*dtp
+        endif
+        
+        idtend = dtidx(index_of_y_wind,index_of_process_orographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdvdt*dtp
+        endif
+
+        idtend = dtidx(index_of_temperature,index_of_process_orographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdtdt*dtp
+        endif
       endif
    
     end if 
@@ -475,13 +494,20 @@ contains
       endif  ! cdmbgwd(3) > 0.0
  
       if(ldiag3d .and. lssav .and. .not. flag_for_gwd_generic_tend) then
-        do k=1,levs
-          do i=1,im
-             ldu3dt_cgw(i,k) = ldu3dt_cgw(i,k) + (gw_dudt(i,k) - Pdudt(i,k))*dtp
-             ldv3dt_cgw(i,k) = ldv3dt_cgw(i,k) + (gw_dvdt(i,k) - Pdvdt(i,k))*dtp
-             ldt3dt_cgw(i,k) = ldt3dt_cgw(i,k) + (gw_dtdt(i,k) - Pdtdt(i,k))*dtp
-          enddo
-        enddo
+        idtend = dtidx(index_of_x_wind,index_of_process_nonorographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdudt*dtp
+        endif
+        
+        idtend = dtidx(index_of_y_wind,index_of_process_nonorographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdvdt*dtp
+        endif
+
+        idtend = dtidx(index_of_temperature,index_of_process_nonorographic_gwd)
+        if(idtend>=1) then
+          dtend(:,:,idtend) = dtend(:,:,idtend) + Pdtdt*dtp
+        endif
       endif
 
     end if  ! do_ugwp_v0.or.do_ugwp_v0_nst_only 

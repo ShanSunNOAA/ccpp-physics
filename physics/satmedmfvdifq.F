@@ -19,16 +19,26 @@
 !> \section arg_table_satmedmfvdifq_init Argument Table
 !! \htmlinclude satmedmfvdifq_init.html
 !!
-      subroutine satmedmfvdifq_init (isatmedmf,isatmedmf_vdifq,
+      subroutine satmedmfvdifq_init (satmedmf,
+     &                               isatmedmf,isatmedmf_vdifq,
      &                               errmsg,errflg)
 
+      logical, intent(in   ) :: satmedmf
       integer, intent(in) :: isatmedmf,isatmedmf_vdifq
+
       character(len=*), intent(out) :: errmsg
       integer,          intent(out) :: errflg
 
 ! Initialize CCPP error handling variables
       errmsg = ''
       errflg = 0
+
+! Consistency checks
+      if (.not. satmedmf) then
+        write(errmsg,fmt='(*(a))') 'Logic error: satmedmf = .false.'        
+        errflg = 1
+        return
+      end if
 
       if (.not. isatmedmf==isatmedmf_vdifq) then
         write(errmsg,fmt='(*(a))') 'Logic error: satmedmfvdif is ',
@@ -63,9 +73,10 @@
      &     snwdph_lnd,psk,rbsoil,zorl,u10m,v10m,fm,fh,                  &
      &     tsea,heat,evap,stress,spd1,kpbl,                             &
      &     prsi,del,prsl,prslk,phii,phil,delt,                          &
-     &     dspheat,dusfc,dvsfc,dtsfc,dqsfc,hpbl,                        &
+     &     dspheat,dusfc,dvsfc,dtsfc,dqsfc,hpbl,dkt,dku,                &
      &     kinver,xkzm_m,xkzm_h,xkzm_s,dspfac,bl_upfr,bl_dnfr,          &
-     &     ntoz,du3dt,dv3dt,dt3dt,dq3dt,do3dt,gen_tend,ldiag3d,qdiag3d, &
+     &     ntoz,ntqv,dtend,dtidx,index_of_temperature,index_of_x_wind,  &
+     &     index_of_y_wind,index_of_process_pbl,gen_tend,ldiag3d,       &
      &     errmsg,errflg)
 !
       use machine  , only : kind_phys
@@ -74,41 +85,42 @@
       implicit none
 !
 !----------------------------------------------------------------------
-      integer, intent(in)  :: im, km, ntrac, ntcw, ntiw, ntke, ntoz
-      integer, intent(in)  :: kinver(im)
-      integer, intent(in)  :: islimsk(im)
-      integer, intent(out) :: kpbl(im)
-      logical, intent(in)  :: gen_tend,ldiag3d,qdiag3d
+      integer, intent(in)  :: im, km, ntrac, ntcw, ntiw, ntke, ntoz,ntqv
+      integer, intent(in)  :: kinver(:)
+      integer, intent(in)  :: islimsk(:)
+      integer, intent(out) :: kpbl(:)
+      logical, intent(in)  :: gen_tend,ldiag3d
 !
       real(kind=kind_phys), intent(in) :: grav,rd,cp,rv,hvap,hfus,fv,   &
      &                                    eps,epsm1
       real(kind=kind_phys), intent(in) :: delt, xkzm_m, xkzm_h, xkzm_s
       real(kind=kind_phys), intent(in) :: dspfac, bl_upfr, bl_dnfr
-      real(kind=kind_phys), intent(inout) :: dv(im,km),     du(im,km),  &
-     &                     tdt(im,km),    rtg(im,km,ntrac)
+      real(kind=kind_phys), intent(inout) :: dv(:,:),     du(:,:),      &
+     &                     tdt(:,:),    rtg(:,:,:)
       real(kind=kind_phys), intent(in) ::                               &
-     &                     u1(im,km),     v1(im,km),                    &
-     &                     t1(im,km),     q1(im,km,ntrac),              &
-     &                     swh(im,km),    hlw(im,km),                   &
-     &                     xmu(im),       garea(im),                    &
-     &                     snwdph_lnd(im),                              &
-     &                     psk(im),       rbsoil(im),                   &
-     &                     zorl(im),      tsea(im),                     &
-     &                     u10m(im),      v10m(im),                     &
-     &                     fm(im),        fh(im),                       &
-     &                     evap(im),      heat(im),                     &
-     &                     stress(im),    spd1(im),                     &
-     &                     prsi(im,km+1), del(im,km),                   &
-     &                     prsl(im,km),   prslk(im,km),                 &
-     &                     phii(im,km+1), phil(im,km)
-      real(kind=kind_phys), intent(inout), dimension(:,:) ::            &
-     &                     du3dt(:,:),    dv3dt(:,:),                   &
-     &                     dt3dt(:,:),    dq3dt(:,:),                   &
-     &                     do3dt(:,:)
+     &                     u1(:,:),     v1(:,:),                        &
+     &                     t1(:,:),     q1(:,:,:),                      &
+     &                     swh(:,:),    hlw(:,:),                       &
+     &                     xmu(:),       garea(:),                      &
+     &                     snwdph_lnd(:),                               &
+     &                     psk(:),       rbsoil(:),                     &
+     &                     zorl(:),      tsea(:),                       &
+     &                     u10m(:),      v10m(:),                       &
+     &                     fm(:),        fh(:),                         &
+     &                     evap(:),      heat(:),                       &
+     &                     stress(:),    spd1(:),                       &
+     &                     prsi(:,:), del(:,:),                         &
+     &                     prsl(:,:),   prslk(:,:),                     &
+     &                     phii(:,:), phil(:,:)
+      real(kind=kind_phys), intent(inout), dimension(:,:,:) :: dtend
+      integer, intent(in) :: dtidx(:,:), index_of_temperature,          &
+     &       index_of_x_wind, index_of_y_wind, index_of_process_pbl
       real(kind=kind_phys), intent(out) ::                              &
-     &                     dusfc(im),     dvsfc(im),                    &
-     &                     dtsfc(im),     dqsfc(im),                    &
-     &                     hpbl(im)
+     &                     dusfc(:),      dvsfc(:),                     &
+     &                     dtsfc(:),      dqsfc(:),                     &
+     &                     hpbl(:)
+      real(kind=kind_phys), intent(out) ::                              &
+     &                     dkt(:,:), dku(:,:)
 !
       logical, intent(in)  :: dspheat
       character(len=*), intent(out) :: errmsg
@@ -120,7 +132,7 @@
 !***
 !***  local variables
 !***
-      integer i,is,k,kk,n,ndt,km1,kmpbl,kmscu,ntrac1
+      integer i,is,k,kk,n,ndt,km1,kmpbl,kmscu,ntrac1,idtend
       integer lcld(im),kcld(im),krad(im),mrad(im)
       integer kx1(im), kpblx(im)
 !
@@ -130,8 +142,7 @@
      &                     qlx(im,km),  thetae(im,km),thlx(im,km),
      &                     slx(im,km),  svx(im,km),   qtx(im,km),
      &                     tvx(im,km),  pix(im,km),   radx(im,km-1),
-     &                     dku(im,km-1),dkt(im,km-1), dkq(im,km-1),
-     &                     cku(im,km-1),ckt(im,km-1)
+     &                     dkq(im,km-1),cku(im,km-1), ckt(im,km-1)
 !
       real(kind=kind_phys) plyr(im,km), rhly(im,km),  cfly(im,km),
      &                     qstl(im,km)
@@ -496,10 +507,14 @@
 !
 !>  - Initialize diffusion coefficients to 0 and calculate the total 
 !! radiative heating rate (dku, dkt, radx)
-      do k=1,km1
+      do k=1,km
         do i=1,im
           dku(i,k)  = 0.
           dkt(i,k)  = 0.
+        enddo
+      enddo
+      do k=1,km1
+        do i=1,im
           dkq(i,k)  = 0.
           cku(i,k)  = 0.
           ckt(i,k)  = 0.
@@ -1295,6 +1310,13 @@ c
             rtg(i,k,ntke) = rtg(i,k,ntke)+qtend
          enddo
       enddo
+      if(ldiag3d) then
+         idtend = dtidx(ntke+100,index_of_process_pbl)
+         if(idtend>0) then
+            dtend(1:im,1:km,idtend) = dtend(1:im,1:km,idtend) +         &
+     &        (f1(1:im,1:km)-q1(1:im,1:km,ntke))*rdt
+         endif
+      endif
 c
 !> ## Compute tridiagonal matrix elements for heat and moisture
 c
@@ -1422,17 +1444,22 @@ c
          enddo
       enddo
       if(ldiag3d .and. .not. gen_tend) then
-        do  k = 1,km
-          do i = 1,im
-            ttend      = (f1(i,k)-t1(i,k))*rdt
-            dt3dt(i,k) = dt3dt(i,k)+ttend*delt
+        idtend=dtidx(index_of_temperature,index_of_process_pbl)
+        if(idtend>=1) then
+          do  k = 1,km
+            do i = 1,im
+              ttend      = (f1(i,k)-t1(i,k))*rdt
+              dtend(i,k,idtend) = dtend(i,k,idtend)+ttend*delt
+            enddo
           enddo
-        enddo
-        if(qdiag3d) then
+        endif
+        ! Send tendencies just for QV; other tracers are below.
+        idtend=dtidx(100+ntqv,index_of_process_pbl)
+        if(idtend>=1) then
           do  k = 1,km
             do i = 1,im
               qtend      = (f2(i,k)-q1(i,k,1))*rdt
-              dq3dt(i,k) = dq3dt(i,k)+qtend*delt
+              dtend(i,k,idtend) = dtend(i,k,idtend)+qtend*delt
             enddo
           enddo
         endif
@@ -1448,14 +1475,21 @@ c
             enddo
           enddo
         enddo
-        if(ldiag3d .and. .not. gen_tend .and. qdiag3d .and. ntoz>0) then
-          kk=ntoz
-          is = (kk-1) * km
-          do k = 1, km
-            do i = 1, im
-              qtend = (f2(i,k+is)-q1(i,k,kk))*rdt
-              do3dt(i,k) = do3dt(i,k)+qtend*delt
-            enddo
+        if(ldiag3d .and. .not. gen_tend) then
+          ! Send tendencies for all tracers that were selected.
+          do kk = 2, ntrac1
+            is = (kk-1) * km
+            idtend = dtidx(kk+100,index_of_process_pbl)
+            if(idtend>=1) then
+              if(kk/=ntke) then
+                do k = 1, km
+                  do i = 1, im
+                    qtend = (f2(i,k+is)-q1(i,k,kk))*rdt
+                    dtend(i,k,idtend) = dtend(i,k,idtend)+qtend*delt
+                  enddo
+                enddo
+              endif
+            endif
           enddo
         endif
       endif
@@ -1472,12 +1506,15 @@ c
           enddo
         enddo
         if(ldiag3d .and. .not. gen_tend) then
-          do k = 1,km1
-            do i = 1,im
-              ttend = diss(i,k) / cp
-              dt3dt(i,k) = dt3dt(i,k)+dspfac * ttend*delt
+          idtend=dtidx(index_of_temperature,index_of_process_pbl)
+          if(idtend>=1) then
+            do k = 1,km1
+              do i = 1,im
+                ttend = diss(i,k) / cp
+                dtend(i,k,idtend) = dtend(i,k,idtend)+dspfac*ttend*delt
+              enddo
             enddo
-          enddo
+          endif
         endif
       endif
 c
@@ -1538,6 +1575,7 @@ c
 !
         enddo
       enddo
+
 c
 !> - Call tridi2() to solve tridiagonal problem for momentum
 c
@@ -1556,14 +1594,25 @@ c
          enddo
       enddo
       if(ldiag3d .and. .not. gen_tend) then
-        do k = 1,km
-          do i = 1,im
-            utend = (f1(i,k)-u1(i,k))*rdt
-            vtend = (f2(i,k)-v1(i,k))*rdt
-            du3dt(i,k) = du3dt(i,k) + utend*delt
-            dv3dt(i,k) = dv3dt(i,k) + vtend*delt
+        idtend=dtidx(index_of_x_wind,index_of_process_pbl)
+        if(idtend>=1) then
+          do k = 1,km
+            do i = 1,im
+              utend = (f1(i,k)-u1(i,k))*rdt
+              dtend(i,k,idtend) = dtend(i,k,idtend) + utend*delt
+            enddo
           enddo
-        enddo
+        endif
+
+        idtend=dtidx(index_of_y_wind,index_of_process_pbl)
+        if(idtend>=1) then
+          do k = 1,km
+            do i = 1,im
+              vtend = (f2(i,k)-v1(i,k))*rdt
+              dtend(i,k,idtend) = dtend(i,k,idtend) + vtend*delt
+            enddo
+          enddo
+        endif
       endif
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
