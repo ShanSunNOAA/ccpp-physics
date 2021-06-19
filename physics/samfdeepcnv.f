@@ -85,7 +85,7 @@
      &    CNV_DQLDT,CLCN,CNV_FICE,CNV_NDROP,CNV_NICE,mp_phys,mp_phys_mg,&
      &    clam,c0s,c1,betal,betas,evfact,evfactl,pgcon,asolfac,         &
      &    do_ca, ca_closure, ca_entr, ca_trigger, nthresh, ca_deep,     &
-     &    rainevap,                                                     &
+     &    rainevap,ca_sgs_emis,wetdpc_deep,cplchm,                      &
      &    errmsg,errflg)
 !
       use machine , only : kind_phys
@@ -101,7 +101,7 @@
       real(kind=kind_phys), intent(in) :: psp(:), delp(:,:),            &
      &   prslp(:,:),  garea(:), dot(:,:), phil(:,:)
       real(kind=kind_phys), dimension(:), intent(in) :: fscav
-      logical, intent(in)  :: hwrf_samfdeep
+      logical, intent(in)  :: hwrf_samfdeep, ca_sgs_emis
       real(kind=kind_phys), intent(in) :: nthresh
       real(kind=kind_phys), intent(in) :: ca_deep(:)
       real(kind=kind_phys), intent(out) :: rainevap(:)
@@ -242,6 +242,8 @@ c  physical parameters
      &                     ctr(im,km,ntr), ctro(im,km,ntr)
 !  for aerosol transport
       real(kind=kind_phys) qaero(im,km,ntc)
+      real(kind=kind_phys), intent(inout), optional :: wetdpc_deep(:,:)
+      logical, intent(in) :: cplchm
 !  for updraft velocity calculation
       real(kind=kind_phys) wu2(im,km),     buo(im,km),    drag(im,km)
       real(kind=kind_phys) wc(im),         scaldfunc(im), sigmagfm(im)
@@ -284,6 +286,9 @@ c    &            .743,.813,.886,.947,1.138,1.377,1.896/
       errmsg = ''
       errflg = 0
 
+! Initialize local variables
+      xmb    = 0.0
+      xmbmax = 0.0
 
       elocp = hvap/cp
       el2orc = hvap*hvap/(rv*cp)
@@ -344,9 +349,16 @@ c
         xpwav(i)= 0.
         xpwev(i)= 0.
         vshear(i) = 0.
-        rainevap(i) = 0.
         gdx(i) = sqrt(garea(i))
+        if(cplchm) then
+           wetdpc_deep(i,:) = 0.
+        endif
       enddo
+      if(do_ca .and. .not. ca_sgs_emis)then
+        do i=1,im
+          rainevap(i) = 0.
+        enddo
+      endif
 !
       if (hwrf_samfdeep) then
         do i=1,im
@@ -2746,7 +2758,7 @@ c             if(islimsk(i) == 1) evef = 0.
       enddo
 
 !LB:                                                                                                                                                                                                                                                  
-      if(do_ca)then
+      if(do_ca .and. .not. ca_sgs_emis)then
          do i = 1,im
             rainevap(i)=delqev(i)
          enddo
@@ -2873,7 +2885,15 @@ c
           do k = 1, km
             do i = 1, im
               if(cnvflg(i) .and. rn(i) > 0.) then
-                if (k <= kmax(i)) qtr(i,k,kk) = qaero(i,k,n)
+               !if (k <= kmax(i)) qtr(i,k,kk) = qaero(i,k,n)
+                if (k <= kmax(i)) then !lzhang
+                !convert wetdeposition into ug/m2/s !lzhang
+                  if(cplchm) then
+                    wetdpc_deep(i,n) = wetdpc_deep(i,n)
+     &              + ((qtr(i,k,kk)-qaero(i,k,n))*delp(i,k)/(grav*delt))
+                  endif
+                  qtr(i,k,kk) = qaero(i,k,n)
+                endif
               endif
             enddo
           enddo

@@ -14,8 +14,6 @@
 !> \section arg_table_GFS_rrtmg_pre_run Argument Table
 !! \htmlinclude GFS_rrtmg_pre_run.html
 !!
-      ! Attention - the output arguments lm, im, lmk, lmp must not be set
-      ! in the CCPP version - they are defined in the interstitial_create routine
       subroutine GFS_rrtmg_pre_run (im, levs, lm, lmk, lmp, n_var_lndp,        &
         imfdeepcnv, imfdeepcnv_gf, me, ncnd, ntrac, num_p3d, npdf3d, ncnvcld3d,&
         ntqv, ntcw,ntiw, ntlnc, ntinc, ncld, ntrw, ntsw, ntgl, ntwa, ntoz,     &
@@ -35,7 +33,7 @@
         gasvmr_o2, gasvmr_co, gasvmr_cfc11, gasvmr_cfc12, gasvmr_cfc22,        &
         gasvmr_ccl4,  gasvmr_cfc113, aerodp, clouds6, clouds7, clouds8,        &
         clouds9, cldsa, cldfra, faersw1, faersw2, faersw3, faerlw1, faerlw2,   &
-        faerlw3, alpha, errmsg, errflg)
+        faerlw3, alpha, cplchm_rad_opt, faersw_cpl, errmsg, errflg)
 
       use machine,                   only: kind_phys
 
@@ -168,6 +166,9 @@
                                                              faerlw2,&
                                                              faerlw3
       real(kind=kind_phys), dimension(:,:),   intent(out) :: alpha
+
+      logical, intent(in) :: cplchm_rad_opt
+      real(kind=kind_phys), dimension(im,lm+LTP,14,NF_AESW), intent(in) :: faersw_cpl
 
       character(len=*), intent(out) :: errmsg
       integer,          intent(out) :: errflg
@@ -575,6 +576,19 @@
           enddo
         enddo
        enddo
+
+      if(cplchm_rad_opt) then ! use chemistry feedback
+       do j = 1,14
+        do k = 1, LMK
+          do i = 1, IM
+            ! NF_AESW = 3
+            faersw1(i,k,j) = faersw_cpl(i,k,j,1)
+            faersw2(i,k,j) = faersw_cpl(i,k,j,2)
+            faersw3(i,k,j) = faersw_cpl(i,k,j,3)
+          enddo
+        enddo
+       enddo
+      endif
 
       do j = 1,NBDLW
         do k = 1, LMK

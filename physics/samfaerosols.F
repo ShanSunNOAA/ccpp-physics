@@ -70,6 +70,7 @@ c     -- check if aerosols are present
 c     -- initialize work variables
       km1 = km - 1
 
+      wet_dep   = zero
       chem_c    = zero
       chem_pw   = zero
       ctro2     = zero
@@ -470,6 +471,7 @@ c     -- check if aerosols are present
 c     -- initialize work variables
       km1 = km - 1
 
+      wet_dep   = zero
       chem_c    = zero
       chem_pw   = zero
       ctro2     = zero

@@ -1,0 +1,493 @@
+[ccpp-table-properties]
+  name = gsd_chem_dust_wrapper
+  type = scheme
+  dependencies =
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_dust_wrapper_init
+  type = scheme
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_dust_wrapper_finalize
+  type = scheme
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_dust_wrapper_run
+  type = scheme
+[im]
+  standard_name = horizontal_loop_extent
+  long_name = horizontal dimension
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[kte]
+  standard_name = vertical_dimension
+  long_name = vertical layer dimension
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[kme]
+  standard_name = vertical_dimension_plus_one
+  long_name = number of vertical levels plus one
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ktau]
+  standard_name = index_of_time_step
+  long_name = current forecast iteration
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[dt]
+  standard_name = time_step_for_physics
+  long_name = physics time step
+  units = s
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[garea]
+  standard_name = cell_area
+  long_name = grid cell area
+  units = m2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[land]
+  standard_name = sea_land_ice_mask
+  long_name = landmask: sea/land/ice=0/1/2
+  units = flag
+  dimensions = (horizontal_loop_extent)
+  type = integer
+  intent = in
+  optional = F
+[u10m]
+  standard_name = x_wind_at_10m
+  long_name = 10 meter u wind speed
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[v10m]
+  standard_name = y_wind_at_10m
+  long_name = 10 meter v wind speed
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[ustar]
+  standard_name = surface_friction_velocity
+  long_name = boundary layer parameter
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[rlat]
+  standard_name = latitude
+  long_name = latitude
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[rlon]
+  standard_name = longitude
+  long_name = longitude
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[tskin]
+  standard_name = surface_skin_temperature
+  long_name = surface skin temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[hf2d]
+  standard_name = instantaneous_surface_upward_sensible_heat_flux_for_chemistry_coupling
+  long_name = instantaneous upward sensible heat flux for chemistry coupling
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[pb2d]
+  standard_name = atmosphere_boundary_layer_thickness
+  long_name = PBL thickness
+  units = m
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[pr3d]
+  standard_name = air_pressure_at_interface
+  long_name = air pressure at model layer interfaces
+  units = Pa
+  dimensions = (horizontal_loop_extent,vertical_dimension_plus_one)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[ph3d]
+  standard_name = geopotential_at_interface
+  long_name = geopotential at model layer interfaces
+  units = m2 s-2
+  dimensions = (horizontal_loop_extent,vertical_dimension_plus_one)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[phl3d]
+  standard_name = geopotential
+  long_name = geopotential at model layer centers
+  units = m2 s-2
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[prl3d]
+  standard_name = air_pressure
+  long_name = mean layer pressure
+  units = Pa
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[tk3d]
+  standard_name = air_temperature_updated_by_physics
+  long_name = updated temperature
+  units = K
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[us3d]
+  standard_name = x_wind_updated_by_physics
+  long_name = updated x-direction wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[vs3d]
+  standard_name = y_wind_updated_by_physics
+  long_name = updated y-direction wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[spechum]
+  standard_name = water_vapor_specific_humidity_updated_by_physics
+  long_name = water vapor specific humidity updated by physics
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[nsoil]
+  standard_name = soil_vertical_dimension
+  long_name = soil vertical layer dimension
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[smc]
+  standard_name = volume_fraction_of_soil_moisture
+  long_name = volumetric fraction of soil moisture
+  units = frac
+  dimensions = (horizontal_loop_extent,soil_vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[vegtype]
+  standard_name = vegetation_type_classification
+  long_name = vegetation type at each grid cell
+  units = index
+  dimensions = (horizontal_loop_extent)
+  type = integer
+  intent = in
+  optional = F
+[soiltyp]
+  standard_name = soil_type_classification
+  long_name = soil type at each grid cell
+  units = index
+  dimensions = (horizontal_loop_extent)
+  type = integer
+  intent = in
+  optional = F
+[sigmaf]
+  standard_name = bounded_vegetation_area_fraction
+  long_name = areal fractional cover of green vegetation bounded on the bottom
+  units = frac
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[dswsfc]
+  standard_name = surface_downwelling_shortwave_flux
+  long_name = surface downwelling shortwave flux at current time
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[zorl]
+  standard_name = surface_roughness_length
+  long_name = surface roughness length in cm
+  units = cm
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[snow_cplchm]
+  standard_name = lwe_thickness_of_snow_amount_for_chemcoupling
+  long_name = total snow precipitation chem
+  units = m
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[dust_in]
+  standard_name = fengsha_dust_input
+  long_name = fengsha dust input
+  units = various
+  dimensions = (horizontal_loop_extent,5)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[emi_in]
+  standard_name = anthropogenic_background_input
+  long_name = anthropogenic background input
+  units = various
+  dimensions = (horizontal_loop_extent,10)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[nseasalt]
+  standard_name = number_of_seasalt_bins_for_diagnostics
+  long_name = number of seasalt bins for diagnostics
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntrac]
+  standard_name = number_of_tracers
+  long_name = number of tracers
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntdust1]
+  standard_name = index_for_dust_1
+  long_name = tracer index for dust 1
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntdust2]
+  standard_name = index_for_dust_2
+  long_name = tracer index for dust 2
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntdust3]
+  standard_name = index_for_dust_3
+  long_name = tracer index for dust 3
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntdust4]
+  standard_name = index_for_dust_4
+  long_name = tracer index for dust 4
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntdust5]
+  standard_name = index_for_dust_5
+  long_name = tracer index for dust 5
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ndust]
+  standard_name = number_of_dust_bins_for_diagnostics
+  long_name = number of dust bins for diagnostics
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[gq0]
+  standard_name = tracer_concentration_updated_by_physics
+  long_name = tracer concentration updated by physics
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension,number_of_tracers)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[duem]
+  standard_name = instantaneous_dust_emission_flux
+  long_name = instantaneous dust emission flux
+  units = kg m-2 s-1
+  dimensions = (horizontal_loop_extent,number_of_dust_bins_for_diagnostics)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[qgrs]
+  standard_name = tracer_concentration
+  long_name = model layer mean tracer concentration
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension,number_of_tracers)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[chem_opt_in]
+  standard_name = gsd_chem_option
+  long_name = gsd chem option
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[dust_opt_in]
+  standard_name = gsd_chem_dust_opt
+  long_name = gsd chem dust chem option
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[dust_calcdrag_in]
+  standard_name = gsd_chem_dust_calcdrag
+  long_name = gsd chem dust calcdrag
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[dust_alpha_in]
+  standard_name = gsd_chem_dust_alpha
+  long_name = fengsha dust alpha
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[dust_gamma_in]
+  standard_name = gsd_chem_dust_gamma
+  long_name = fengsha dust gamma
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[pert_scale_dust]
+  standard_name = dust_emissions_scaling_factor
+  long_name = Scaling factor for emissions of dust emissions
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[emis_amp_dust]
+  standard_name = dust_emissions_perturbation_amplitude
+  long_name = multiplier of emissions random perturbation of dust emissions
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[do_sppt_emis]
+  standard_name = flag_for_stochastic_emissions_perturbations
+  long_name = flag for stochastic emissions perturbations
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+  optional = F
+[sppt_wts]
+  standard_name = weights_for_stochastic_sppt_perturbation
+  long_name = weights for stochastic sppt perturbation
+  units = none
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[errmsg]
+  standard_name = ccpp_error_message
+  long_name = error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=*
+  intent = out
+  optional = F
+[errflg]
+  standard_name = ccpp_error_flag
+  long_name = error flag for error handling in CCPP
+  units = flag
+  dimensions = ()
+  type = integer
+  intent = out
+  optional = F

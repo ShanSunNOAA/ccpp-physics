@@ -1,0 +1,376 @@
+[ccpp-table-properties]
+  name = gsd_chem_plume_wrapper
+  type = scheme
+  dependencies =
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_plume_wrapper_init
+  type = scheme
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_plume_wrapper_finalize
+  type = scheme
+
+########################################################################
+[ccpp-arg-table]
+  name = gsd_chem_plume_wrapper_run
+  type = scheme
+[im]
+  standard_name = horizontal_loop_extent
+  long_name = horizontal dimension
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[kte]
+  standard_name = vertical_dimension
+  long_name = vertical layer dimension
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[kme]
+  standard_name = vertical_dimension_plus_one
+  long_name = number of vertical levels plus one
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ktau]
+  standard_name = index_of_time_step
+  long_name = current forecast iteration
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[dt]
+  standard_name = time_step_for_physics
+  long_name = physics time step
+  units = s
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[vegtype_cpl]
+  standard_name = vegetation_type_classification_for_coupling
+  long_name = vegetation type at each grid cell copied from vegtype
+  units = index
+  dimensions = (horizontal_loop_extent)
+  type = integer
+  intent = out
+  optional = F
+[pr3d]
+  standard_name = air_pressure_at_interface
+  long_name = air pressure at model layer interfaces
+  units = Pa
+  dimensions = (horizontal_loop_extent,vertical_dimension_plus_one)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[ph3d]
+  standard_name = geopotential_at_interface
+  long_name = geopotential at model layer interfaces
+  units = m2 s-2
+  dimensions = (horizontal_loop_extent,vertical_dimension_plus_one)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[phl3d]
+  standard_name = geopotential
+  long_name = geopotential at model layer centers
+  units = m2 s-2
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[prl3d]
+  standard_name = air_pressure
+  long_name = mean layer pressure
+  units = Pa
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[tk3d]
+  standard_name = air_temperature_updated_by_physics
+  long_name = updated temperature
+  units = K
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[us3d]
+  standard_name = x_wind_updated_by_physics
+  long_name = updated x-direction wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[vs3d]
+  standard_name = y_wind_updated_by_physics
+  long_name = updated y-direction wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[spechum]
+  standard_name = water_vapor_specific_humidity_updated_by_physics
+  long_name = water vapor specific humidity updated by physics
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[w]
+  standard_name = omega
+  long_name = layer mean vertical velocity
+  units = Pa s-1
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[vegtype]
+  standard_name = vegetation_type_classification
+  long_name = vegetation type at each grid cell
+  units = index
+  dimensions = (horizontal_loop_extent)
+  type = integer
+  intent = in
+  optional = F
+[fire_GBBEPx]
+  standard_name = emission_fire_GBBEPx
+  long_name = emission fire GBBEPx
+  units = various
+  dimensions = (horizontal_loop_extent,5)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[fire_MODIS]
+  standard_name = emission_fire_MODIS
+  long_name = emission fire MODIS
+  units = various
+  dimensions = (horizontal_loop_extent,13)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[ca_sgs_gbbepx_frp]
+  standard_name = GBBEPx_fire_radiative_power_for_stochastic_physics
+  long_name = GBBEPx fire radiative power for stochastic physics
+  units = MW
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  active = (flag_for_cellular_automata)
+  intent = out
+  optional = F
+[ntrac]
+  standard_name = number_of_tracers
+  long_name = number of tracers
+  units = count
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntso2]
+  standard_name = index_for_so2
+  long_name = tracer index for so2
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntpp25]
+  standard_name = index_for_pp25
+  long_name = tracer index for pp25
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntbc1]
+  standard_name = index_for_bc1
+  long_name = tracer index for bc1
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntoc1]
+  standard_name = index_for_oc1
+  long_name = tracer index for oc1
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[ntpp10]
+  standard_name = index_for_pp10
+  long_name = tracer index for pp10
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[do_ca]
+  standard_name = flag_for_cellular_automata
+  long_name = cellular automata main switch
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+  optional = F
+[ca_sgs_emis]
+  standard_name = flag_for_sgs_cellular_automata_in_chemical_tracer_emissions
+  long_name = switch for sgs ca in chemical tracer emissions
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+  optional = F
+[ca_sgs]
+  standard_name = flag_for_sgs_cellular_automata
+  long_name = switch for sgs ca
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+  optional = F
+[gq0]
+  standard_name = tracer_concentration_updated_by_physics
+  long_name = tracer concentration updated by physics
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension,number_of_tracers)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[qgrs]
+  standard_name = tracer_concentration
+  long_name = model layer mean tracer concentration
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent,vertical_dimension,number_of_tracers)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[ebu]
+  standard_name = chem_buffer_ebu
+  long_name = chemistry buffer of ebu
+  units = various
+  dimensions = (horizontal_loop_extent,vertical_dimension_plus_one,1,7)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[abem]
+  standard_name = instantaneous_anthopogenic_and_biomass_burning_emissions
+  long_name = instantaneous anthopogenic and biomass burning emissions for black carbon, organic carbon, and sulfur dioxide
+  units = kg m-2 s-1
+  dimensions = (horizontal_loop_extent,7)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = F
+[pert_scale_plume]
+  standard_name = plume_emissions_scaling_factor
+  long_name = Scaling factor for emissions of plume rising
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[ca_emis_plume]
+  standard_name = fraction_of_cellular_automata_for_plume_rise_emissions
+  long_name = fraction of cellular automata for plume rise emissions
+  units = frac
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[biomass_burn_opt_in]
+  standard_name = gsd_chem_biomass_burn_opt
+  long_name = gsd chem biomass burning option
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[plumerise_flag_in]
+  standard_name = gsd_chem_plumerise_flag
+  long_name = gsd chem plumerise flag
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[plumerisefire_frq_in]
+  standard_name = gsd_chem_plumerisefire_frq
+  long_name = gsd chem plumerise fire frequency
+  units = index
+  dimensions = ()
+  type = integer
+  intent = in
+  optional = F
+[emis_amp_plume]
+  standard_name = plume_emissions_perturbation_amplitude
+  long_name = multiplier of emissions random perturbation of plume rise emissions
+  units = none
+  dimensions = ()
+  type = real
+  kind = kind_phys
+[do_sppt_emis]
+  standard_name = flag_for_stochastic_emissions_perturbations
+  long_name = flag for stochastic emissions perturbations
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+  optional = F
+[sppt_wts]
+  standard_name = weights_for_stochastic_sppt_perturbation
+  long_name = weights for stochastic sppt perturbation
+  units = none
+  dimensions = (horizontal_loop_extent,vertical_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[errmsg]
+  standard_name = ccpp_error_message
+  long_name = error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=*
+  intent = out
+  optional = F
+[errflg]
+  standard_name = ccpp_error_flag
+  long_name = error flag for error handling in CCPP
+  units = flag
+  dimensions = ()
+  type = integer
+  intent = out
+  optional = F

@@ -805,7 +805,9 @@
                      call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%sfcdlw ', Coupling%sfcdlw )
                      if (Model%cplflx .or. Model%do_sppt .or. Model%cplchm) then
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%rain_cpl', Coupling%rain_cpl)
+                        call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%rain_cplchm', Coupling%rain_cplchm)
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%snow_cpl', Coupling%snow_cpl)
+                        call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%snow_cplchm', Coupling%snow_cplchm)
                      end if
 !                    if (Model%cplwav2atm) then
 !                       call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%zorlwav_cpl' , Coupling%zorlwav_cpl  )
@@ -882,7 +884,7 @@
                      if (Model%lndp_type /= 0) then
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%sfc_wts'  , Coupling%sfc_wts   )
                      end if
-                     if (Model%do_ca) then
+                     if (Model%do_ca .and. .not. Model%ca_sgs_emis) then
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%ca1      ', Coupling%ca1       )
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%ca_deep  ', Coupling%ca_deep   )
                         call print_var(mpirank, omprank, blkno, Grid%xlat_d, Grid%xlon_d, 'Coupling%ca_turb  ', Coupling%ca_turb   )
