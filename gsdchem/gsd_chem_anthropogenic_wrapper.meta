@@ -199,7 +199,7 @@
   standard_name = instantaneous_anthopogenic_and_biomass_burning_emissions
   long_name = instantaneous anthopogenic and biomass burning emissions for black carbon, organic carbon, and sulfur dioxide
   units = kg m-2 s-1
-  dimensions = (horizontal_loop_extent,7)
+  dimensions = (horizontal_loop_extent,16)
   type = real
   kind = kind_phys
   intent = inout

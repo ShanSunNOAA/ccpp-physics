@@ -191,7 +191,8 @@
 !> num of species for output aod (opnl)
       integer, parameter, public :: NSPC    = 5
 !> total+species
-      integer, parameter, public :: NSPC1   = NSPC + 1
+      !integer, parameter, public :: NSPC1   = NSPC + 1
+      integer, parameter, public :: NSPC1   = NSPC + 5 !zhang
 
       real (kind=kind_phys), parameter :: f_zero = 0.0
       real (kind=kind_phys), parameter :: f_one  = 1.0
@@ -3067,6 +3068,20 @@
            aerodp(i,m+1) = spcodp(m)
          enddo
 
+!  ---  total scat (optional) !lzhang
+         do k = 1, NLAY
+           aerodp(i,NSPC+2) = aerodp(i,NSPC+2) +                        &
+     &                      tauae(k,nv_aod)*ssaae(k,nv_aod)             
+         enddo
+!  ---  total aaod (optional) !lzhang
+         do k = 1, NLAY
+           aerodp(i,NSPC+3) = aerodp(i,NSPC+3) +                        &
+     &                       tauae(k,nv_aod)*(1-ssaae(k,nv_aod))        
+         enddo
+!  ---  total scat (optional) !lzhang
+           aerodp(i,NSPC+4) = tauae(1,nv_aod)*ssaae(1,nv_aod)
+!  ---  total aaod (optional) !lzhang
+           aerodp(i,NSPC+5) = tauae(1,nv_aod)*(1-ssaae(1,nv_aod))
         endif     ! end if_larsw_block
 
         if ( laerlw ) then
@@ -4344,6 +4359,21 @@
           do m = 1, NSPC
            aerodp(i,m+1) = spcodp(m)
           enddo
+
+!  ---  total scat (optional) !lzhang
+         do k = 1, NLAY
+           aerodp(i,NSPC+2) = aerodp(i,NSPC+2) +                        &
+     &                      tauae(k,nv_aod)*ssaae(k,nv_aod)
+         enddo
+!  ---  total aaod (optional) !lzhang
+         do k = 1, NLAY
+           aerodp(i,NSPC+3) = aerodp(i,NSPC+3) +                        &
+     &                       tauae(k,nv_aod)*(1-ssaae(k,nv_aod))
+         enddo
+!  ---  total scat (optional) !lzhang
+           aerodp(i,NSPC+4) = tauae(1,nv_aod)*ssaae(1,nv_aod)
+!  ---  total aaod (optional) !lzhang
+           aerodp(i,NSPC+5) = tauae(1,nv_aod)*(1-ssaae(1,nv_aod))
 
         endif     ! end if_larsw_block
 

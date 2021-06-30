@@ -63,7 +63,7 @@ contains
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
     real(kind_phys), dimension(im,kte), intent(in) :: phl3d, prl3d, tk3d, spechum
     real(kind_phys), dimension(im,kte,ntrac), intent(inout) :: gq0, qgrs
-    real(kind_phys), dimension(im,7        ), intent(inout) :: abem
+    real(kind_phys), dimension(im,16       ), intent(inout) :: abem
     integer,           intent(in) :: chem_opt_in, kemit_in
     character(len=*), intent(out) :: errmsg
     integer,          intent(out) :: errflg

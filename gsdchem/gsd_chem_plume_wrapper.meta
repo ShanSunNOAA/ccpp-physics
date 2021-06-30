@@ -155,11 +155,20 @@
   type = integer
   intent = in
   optional = F
-[fire_GBBEPx]
-  standard_name = emission_fire_GBBEPx
+[garea]
+  standard_name = cell_area
+  long_name = grid cell area
+  units = m2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = F
+[fire2_GBBEPx]
+  standard_name = emission_fire2_GBBEPx
   long_name = emission fire GBBEPx
   units = various
-  dimensions = (horizontal_loop_extent,5)
+  dimensions = (horizontal_loop_extent,32,5)
   type = real
   kind = kind_phys
   intent = in
@@ -286,7 +295,7 @@
   standard_name = instantaneous_anthopogenic_and_biomass_burning_emissions
   long_name = instantaneous anthopogenic and biomass burning emissions for black carbon, organic carbon, and sulfur dioxide
   units = kg m-2 s-1
-  dimensions = (horizontal_loop_extent,7)
+  dimensions = (horizontal_loop_extent,16)
   type = real
   kind = kind_phys
   intent = inout
