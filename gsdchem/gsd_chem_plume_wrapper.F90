@@ -65,7 +65,7 @@ contains
     integer, dimension(im), intent(in) :: vegtype    
     integer, dimension(im), intent(out) :: vegtype_cpl
     real(kind_phys), dimension(im), intent(in) :: garea    
-    real(kind_phys), dimension(im, 32, 5), intent(in) :: fire2_GBBEPx
+    real(kind_phys), dimension(im, 33, 5), intent(in) :: fire2_GBBEPx
     real(kind_phys), dimension(im,    13), intent(in) :: fire_MODIS
     real(kind_phys), intent(out) :: ca_sgs_gbbepx_frp(:)
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d, pr3d
@@ -307,7 +307,7 @@ contains
     integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
     logical, intent(in) :: doing_sgs_emis
     real(kind=kind_phys), dimension(ims:ime), intent(in) :: garea,ca_emis_plume
-    real(kind=kind_phys), dimension(ims:ime, 32, 5),   intent(in) :: fire2_GBBEPx
+    real(kind=kind_phys), dimension(ims:ime, 33, 5),   intent(in) :: fire2_GBBEPx
     real(kind=kind_phys), dimension(ims:ime,    13),   intent(in) :: fire_MODIS
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) ::       &
          pr3d,ph3d
