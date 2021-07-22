@@ -201,7 +201,7 @@ contains
 
     real(kind_phys), dimension(ims:ime, kms:kme, jms:jme), intent(out) :: z_at_w
     real(kind_phys), dimension(ims:ime, jms:jme, num_ebu_in) :: emiss_ab
-    real(kind_phys), parameter :: frac_so2_ant = 0.5_kind_phys  ! antropogenic so2 fraction
+    real(kind_phys), parameter :: frac_so2_ant = 1.0_kind_phys  ! antropogenic so2 fraction
 
     ! -- local variables
 !   real(kind=kind_phys), dimension(ims:ime, kms:kme, jms:jme) :: p_phy
