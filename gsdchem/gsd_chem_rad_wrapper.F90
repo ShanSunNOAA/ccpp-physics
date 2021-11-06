@@ -42,10 +42,11 @@ contains
 !> @{
     subroutine gsd_chem_rad_wrapper_run(im, kte, kme, ktau, dt,         &
                    ph3d,prl3d, tk3d, spechum,                           &
-                   ntrac,ntso2,ntsulf,ntDMS,ntmsa,ntpp25,               &
-                   ntbc1,ntbc2,ntoc1,ntoc2,                             &
-                   ntss1,ntss2,ntss3,ntss4,ntss5,                       &
-                   ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,      &
+                   ntrac,aero_in,                                       &
+                  !ntrac,ntso2,ntsulf,ntDMS,ntmsa,ntpp25,               &
+                  !ntbc1,ntbc2,ntoc1,ntoc2,                             &
+                  !ntss1,ntss2,ntss3,ntss4,ntss5,                       &
+                  !ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,      &
                    gq0,abem,                                            &
                    cplchm_rad_opt,lmk,faersw_cpl,                       &
                    chem_opt_in,aer_ra_feedback_in,aer_ra_frq_in,        &
@@ -55,10 +56,11 @@ contains
 
 
     integer,        intent(in) :: im,kte,kme,ktau
-    integer,        intent(in) :: ntrac,ntss1,ntss2,ntss3,ntss4,ntss5
-    integer,        intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5
-    integer,        intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
-    integer,        intent(in) :: ntsulf,ntbc2,ntoc2,ntDMS,ntmsa
+    integer,        intent(in) :: ntrac
+   !integer,        intent(in) :: ntrac,ntss1,ntss2,ntss3,ntss4,ntss5
+   !integer,        intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5
+   !integer,        intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
+   !integer,        intent(in) :: ntsulf,ntbc2,ntoc2,ntDMS,ntmsa
     real(kind_phys),intent(in) :: dt
 
     integer, parameter :: ids=1,jds=1,jde=1, kds=1
@@ -68,6 +70,7 @@ contains
     real(kind_phys), dimension(im,kme), intent(in) :: ph3d
     real(kind_phys), dimension(im,kte), intent(in) :: prl3d, tk3d, spechum
     real(kind_phys), dimension(im,kte,ntrac), intent(inout) :: gq0
+    real(kind_phys), dimension(im,kte,15), intent(in) :: aero_in
     real(kind_phys), dimension(im,16        ), intent(inout) :: abem
     integer,         intent(in) :: lmk
     real(kind_phys), dimension(im, lmk, 14, 3),intent(inout) :: faersw_cpl
@@ -170,11 +173,11 @@ contains
 !>- get ready for chemistry run
     call gsd_chem_prep_rad(                                             &
         ktau,dtstep,ph3d,tk3d,prl3d,spechum,rri,dz8w,                   &
-        ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                                &
-        ntbc1,ntbc2,ntoc1,ntoc2,                                        &
-        ntss1,ntss2,ntss3,ntss4,ntss5,                                  &
-        ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,                 &
-        ntrac,gq0,num_chem,ppm2ugkg,chem,relhum,                        &
+       !ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                                &
+       !ntbc1,ntbc2,ntoc1,ntoc2,                                        &
+       !ntss1,ntss2,ntss3,ntss4,ntss5,                                  &
+       !ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,                 &
+        ntrac,gq0,num_chem,ppm2ugkg,chem,relhum,aero_in,                &
         ids,ide, jds,jde, kds,kde,                                      &
         ims,ime, jms,jme, kms,kme,                                      &
         its,ite, jts,jte, kts,kte)
@@ -269,11 +272,11 @@ contains
 !> @}
    subroutine gsd_chem_prep_rad(                                       &
         ktau,dtstep,ph3d,tk3d,prl3d,spechum,rri,dz8w,                  &
-        ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                               &
-        ntbc1,ntbc2,ntoc1,ntoc2,                                       &
-        ntss1,ntss2,ntss3,ntss4,ntss5,                                 &
-        ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,                &
-        ntrac,gq0,num_chem,ppm2ugkg,chem,relhum,                       &
+       !ntso2,ntsulf,ntDMS,ntmsa,ntpp25,                               &
+       !ntbc1,ntbc2,ntoc1,ntoc2,                                       &
+       !ntss1,ntss2,ntss3,ntss4,ntss5,                                 &
+       !ntdust1,ntdust2,ntdust3,ntdust4,ntdust5,ntpp10,                &
+        ntrac,gq0,num_chem,ppm2ugkg,chem,relhum,aero_in,               &
         ids,ide, jds,jde, kds,kde,                                     &
         ims,ime, jms,jme, kms,kme,                                     &
         its,ite, jts,jte, kts,kte)
@@ -282,13 +285,14 @@ contains
     real(kind=kind_phys), intent(in) :: dtstep
 
     !FV3 input variables
-    integer, intent(in) :: ntrac,ntss1,ntss2,ntss3,ntss4,ntss5
-    integer, intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5
-    integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
-    integer,        intent(in) :: ntsulf,ntbc2,ntoc2,ntDMS,ntmsa
+    integer, intent(in) :: ntrac!,ntss1,ntss2,ntss3,ntss4,ntss5
+   !integer, intent(in) :: ntdust1,ntdust2,ntdust3,ntdust4,ntdust5
+   !integer, intent(in) :: ntso2,ntpp25,ntbc1,ntoc1,ntpp10
+   !integer,        intent(in) :: ntsulf,ntbc2,ntoc2,ntDMS,ntmsa
     real(kind=kind_phys), dimension(ims:ime, kms:kme), intent(in) :: ph3d
     real(kind=kind_phys), dimension(ims:ime, kts:kte), intent(in) :: tk3d,prl3d,spechum
     real(kind=kind_phys), dimension(ims:ime, kts:kte,ntrac), intent(in) :: gq0
+    real(kind_phys), dimension(ims:ime,kts:kte,15), intent(in) :: aero_in
 
 
     !GSD Chem variables
@@ -370,26 +374,26 @@ contains
  
     do k=kms,kte
      do i=ims,ime
-       chem(i,k,jts,p_so2   )=max(epsilc,gq0(i,k,ntso2  )/ppm2ugkg(p_so2))
-       chem(i,k,jts,p_sulf  )=max(epsilc,gq0(i,k,ntsulf )/ppm2ugkg(p_sulf))
-       chem(i,k,jts,p_dms   )=max(epsilc,gq0(i,k,ntdms  )/ppm2ugkg(p_dms))
-       chem(i,k,jts,p_msa   )=max(epsilc,gq0(i,k,ntmsa  )/ppm2ugkg(p_msa))
-       chem(i,k,jts,p_p25   )=max(epsilc,gq0(i,k,ntpp25 )/ppm2ugkg(p_p25))
-       chem(i,k,jts,p_bc1   )=max(epsilc,gq0(i,k,ntbc1  )/ppm2ugkg(p_bc1))
-       chem(i,k,jts,p_bc2   )=max(epsilc,gq0(i,k,ntbc2  )/ppm2ugkg(p_bc2))
-       chem(i,k,jts,p_oc1   )=max(epsilc,gq0(i,k,ntoc1  )/ppm2ugkg(p_oc1))
-       chem(i,k,jts,p_oc2   )=max(epsilc,gq0(i,k,ntoc2  )/ppm2ugkg(p_oc2))
-       chem(i,k,jts,p_dust_1)=max(epsilc,gq0(i,k,ntdust1)/ppm2ugkg(p_dust_1))
-       chem(i,k,jts,p_dust_2)=max(epsilc,gq0(i,k,ntdust2)/ppm2ugkg(p_dust_2))
-       chem(i,k,jts,p_dust_3)=max(epsilc,gq0(i,k,ntdust3)/ppm2ugkg(p_dust_3))
-       chem(i,k,jts,p_dust_4)=max(epsilc,gq0(i,k,ntdust4)/ppm2ugkg(p_dust_4))
-       chem(i,k,jts,p_dust_5)=max(epsilc,gq0(i,k,ntdust5)/ppm2ugkg(p_dust_5))
-       chem(i,k,jts,p_seas_1)=max(epsilc,gq0(i,k,ntss1  )/ppm2ugkg(p_seas_1))
-       chem(i,k,jts,p_seas_2)=max(epsilc,gq0(i,k,ntss2  )/ppm2ugkg(p_seas_2))
-       chem(i,k,jts,p_seas_3)=max(epsilc,gq0(i,k,ntss3  )/ppm2ugkg(p_seas_3))
-       chem(i,k,jts,p_seas_4)=max(epsilc,gq0(i,k,ntss4  )/ppm2ugkg(p_seas_4))
-       chem(i,k,jts,p_seas_5)=max(epsilc,gq0(i,k,ntss5  )/ppm2ugkg(p_seas_5))
-       chem(i,k,jts,p_p10   )=max(epsilc,gq0(i,k,ntpp10 )/ppm2ugkg(p_p10))
+      !chem(i,k,jts,p_so2   )=max(epsilc,gq0(i,k,ntso2  )/ppm2ugkg(p_so2))
+       chem(i,k,jts,p_sulf  )=max(epsilc,aero_in(i,k,15)/ppm2ugkg(p_sulf))
+      !chem(i,k,jts,p_dms   )=max(epsilc,gq0(i,k,ntdms  )/ppm2ugkg(p_dms))
+      !chem(i,k,jts,p_msa   )=max(epsilc,gq0(i,k,ntmsa  )/ppm2ugkg(p_msa))
+      !chem(i,k,jts,p_p25   )=max(epsilc,gq0(i,k,ntpp25 )/ppm2ugkg(p_p25))
+       chem(i,k,jts,p_bc1   )=max(epsilc,aero_in(i,k,1 ))
+       chem(i,k,jts,p_bc2   )=max(epsilc,aero_in(i,k,2 ))
+       chem(i,k,jts,p_oc1   )=max(epsilc,aero_in(i,k,8 ))
+       chem(i,k,jts,p_oc2   )=max(epsilc,aero_in(i,k,9 ))
+       chem(i,k,jts,p_dust_1)=max(epsilc,aero_in(i,k,3 ))
+       chem(i,k,jts,p_dust_2)=max(epsilc,aero_in(i,k,4 ))
+       chem(i,k,jts,p_dust_3)=max(epsilc,aero_in(i,k,5 ))
+       chem(i,k,jts,p_dust_4)=max(epsilc,aero_in(i,k,6 ))
+       chem(i,k,jts,p_dust_5)=max(epsilc,aero_in(i,k,7 ))
+       chem(i,k,jts,p_seas_1)=max(epsilc,aero_in(i,k,10))
+       chem(i,k,jts,p_seas_2)=max(epsilc,aero_in(i,k,11))
+       chem(i,k,jts,p_seas_3)=max(epsilc,aero_in(i,k,12))
+       chem(i,k,jts,p_seas_4)=max(epsilc,aero_in(i,k,13))
+       chem(i,k,jts,p_seas_5)=max(epsilc,aero_in(i,k,14))
+      !chem(i,k,jts,p_p10   )=max(epsilc,gq0(i,k,ntpp10 )/ppm2ugkg(p_p10))
      enddo
     enddo
 
