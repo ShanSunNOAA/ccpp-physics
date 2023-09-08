@@ -10,7 +10,7 @@ module state_eqn
 contains
 
    real function sig(t,s)
-! --- sea water density (sigma-t) at p=0
+! --- sea water density (sigma = density - 1000) at p=0
    real, intent(in) :: t, s
 !  sig = coef(1)+s*coef(3)+				&
 !     t*(coef(2)+s*coef(5)+				&
@@ -83,7 +83,6 @@ module skinsst
     rd,			& ! gas constant of dry air			in
     eps,		& ! ratio of gas constants, rd/rv		in
     sbc,		& ! stefan-boltzmann constant			in
-    lseaspray,		& ! seaspray flag				in
     ulwflx,             & ! upwelling LW flux				inout
     tskin,		& ! skin temp					inout
     qsat,		& ! saturation specif. humidity			out
@@ -96,12 +95,8 @@ module skinsst
     gflux,		& ! heat flux over ground			out
     cmm,		& ! momentum exchange coeff			out
     chh,		& ! thermal exchange coeff			out
+    use_flake,		& ! lake model flag
     errmsg, errflg)
-
-! - - - - - - - - - - - - - - - - - - - - - - - - - - -
-! --- dt_warm currently archived under the name "xtts".
-! --- other unused arrays: c0,w0,wd,xs,xt,xu,xv
-! - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
    use machine , only : kind_phys
 !  use module_nst_parameters, only : rad2deg
@@ -111,8 +106,7 @@ module skinsst
 
 ! --- input:
    integer, intent(in) :: im,iter
-   logical, dimension(:), intent(in) :: wet
-   logical, intent(in) :: lseaspray
+   logical, dimension(:), intent(in) :: wet, use_flake
    real (kind=kind_phys), dimension(:), intent(in) :: xlon,xlat,	&
       sfcemis, dlwflx, sfcnsw, tsfco, wind, psfc, plyr1, tlyr1, qlyr1,	&
       cm, ch, compres, stress
@@ -137,8 +131,9 @@ module skinsst
      spcifh = 3990.,		& ! seawater specific heat
      grav  = 9.806,		& ! gravity
      sss = 34.7,		& ! sea surface salinity
-     penetr = 2.,		& ! depth (m) where flux  = sfc.flux * dplete
-     dplete = .5
+     dimscl = 2.,		& ! depth (m) where flux  = sfc.flux * dplete
+     dplete = .5,		&
+     grnblu
    integer,parameter :: itmax = 5		! regula falsi iterations
    real :: rnl_ts, hs_ts, rf_ts, alpha, beta, rch, ustar,		&
       hist(0:itmax) = 0., x1, x2, x3, y1, y2, y3, dif1, dif2, dif3
@@ -149,6 +144,11 @@ module skinsst
    common /testpt/ testlon,testlat		! (values defined in dcyc2t3.f)
    doprint(alon,alat)=abs(testlon-alon).lt.small .and.			&
                       abs(testlat-alat).lt.small
+
+! --- latitude-dependent green/blue water transition factor affecting dimscl
+!  grnblu(alat)= 1. - (alat/90.)**2 * (1. - .5*(alat/90.)**2)
+!  grnblu(alat)= 1. - .25*(alat/90.)**2 * (3. - (alat/90.)**2 * (alat/90.)**2)
+   grnblu(alat)= 1. - (alat/90.)**2 * (alat/90.)**2 * (1.5 - (alat/90.)**2)
 
    if (iter.gt.1) return
 
@@ -192,10 +192,14 @@ module skinsst
      ustar = sqrt(stress(i)/rho_air)			! air friction velocity
 
 ! --- apply warm layer correction
+! - - - - - - - - - - - - - - - - - - - - - - - - - - -
+! --- dt_warm currently archived under the name "xtts".
+! --- other unused arrays: c0,w0,wd,xs,xt,xu,xv
+! - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
      dt_warm(i) = 0.
      if (sfcnsw(i).gt.0.) dt_warm(i) = sfcnsw(i) * timestep *		&
-         logdplt / (penetr * rho_wat * spcifh)
+         logdplt / (dimscl * grnblu(alat) * rho_wat * spcifh)
      tskin(i)=tsfco(i) + dt_warm(i)
 
 ! --- start cool-skin iteration, using regula falsi (aiming for x_n = y_n)
@@ -311,7 +315,7 @@ module skinsst
                       rho_w,rho_a,ts,grav,le,deltat_c,z_c,alon,alat,doprint)
 
 ! upper ocean cool-skin parameterizaion, Fairall et al, 1996.
-! code extracted from sfc_nst.f package
+! code extracted from NSST package
 
 ! input:
 ! ustar_a : atmosphreic friction velocity at the air-sea interface (m/s)
@@ -431,7 +435,7 @@ module skinsst
    evap,		& ! latent heat flux, pos.up			(out)
    elocp,		& ! heat of evaporation over specif.heat, hvap/cp
    eps,			& ! ratio of air/vapor gas constants
-   rch,			& ! rho * cp * ch * wind		[W/deg]
+   rch,			& ! rho * cp * ch * wind  [W/deg]
    sbc,			& ! stefan-boltzmann constant
    sfcemis,		& ! sea surface emissivity 
    dlwflx,		& ! absorbed downwelling LW flux, pos.down
@@ -439,7 +443,7 @@ module skinsst
    alon,alat,doprint)
 
 ! --- compute sum of nonsolar air-sea fluxes
-! --- watch out for nonstandard sign convention: upwd fluxes > 0
+! --- watch out for nonstandard sign convention: upwd fluxes are treated as > 0
 
    use funcphys, only : fpvs		! vapor pressure
    implicit none
@@ -457,15 +461,15 @@ module skinsst
    nonsol = hflx + evap + ulwflx - dlwflx
 
   if (doprint) print 98,'exiting surflx   lon,lat=',alon,alat,          &
-     'tsfc',tsfc-frz,	&
-     'psfc',psfc,	&
-     'pvap',pvap,	&       
-     'qsat',qsat,	&
-     'evap',evap,	&
-     'hflx',hflx,	&
-     'ulwflx',ulwflx,	&
-     'dlwflx',dlwflx,	&
-     'nonsol',nonsol    
+     'tsfc',tsfc-frz,	& ! surface temperature
+     'psfc',psfc,	& ! surface pressure
+     'pvap',pvap,	& ! saturation vapor pressure
+     'qsat',qsat,	& !saturation specif. humidity
+     'evap',evap,	& ! latent heat flux
+     'hflx',hflx,	& ! sensible heat flux
+     'ulwflx',ulwflx,	& ! upwelling long-wave flux
+     'dlwflx',dlwflx,	& ! downwelling long-wave flux
+     'nonsol',nonsol      ! sum of nonsolar heat fluxes
  99 format (/a,2f7.2/(5(a8,"=",f7.2)))
  98 format (/a,2f7.2/(4(a8,"=",es11.4)))
 
