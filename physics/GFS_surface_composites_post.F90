@@ -4,6 +4,8 @@
 module GFS_surface_composites_post
 
    use machine, only: kind_phys
+   use module_nst_parameters, only : rad2deg
+
 
    ! For consistent calculations of composite surface properties
    use sfc_diff, only: stability
@@ -32,7 +34,7 @@ contains
       ep1d_lnd, ep1d_ice, weasd, weasd_lnd, weasd_ice, snowd, snowd_lnd, snowd_ice, tprcp, tprcp_wat,                             &
       tprcp_lnd, tprcp_ice, evap, evap_wat, evap_lnd, evap_ice, hflx, hflx_wat, hflx_lnd, hflx_ice, qss, qss_wat, qss_lnd,        &
       qss_ice, tsfc, tsfco, tsfcl, tsfc_wat, tisfc, hice, cice, tiice,                                                            &
-      sigmaf, zvfun, lheatstrg, h0facu, h0facs, hflxq, hffac, stc,                                                                &
+      sigmaf, zvfun, lheatstrg, h0facu, h0facs, hflxq, hffac, stc, xlon, xlat,                                                     &
       grav, prsik1, prslk1, prslki, z1, ztmax_wat, ztmax_lnd, ztmax_ice, huge, errmsg, errflg)
 
       implicit none
@@ -58,7 +60,7 @@ contains
       real(kind=kind_phys),                 intent(in   ) :: h0facu, h0facs
 !     real(kind=kind_phys),                 intent(in   ) :: min_seaice
       real(kind=kind_phys),                 intent(in   ) :: rd, rvrdm1, huge
-
+      real(kind=kind_phys), dimension(:),   intent(in   ) :: xlon, xlat
       real(kind=kind_phys), dimension(:,:), intent(in   ) :: tiice
       real(kind=kind_phys), dimension(:,:), intent(inout) :: stc
 
@@ -81,6 +83,12 @@ contains
       real(kind=kind_phys) :: tem1, tem2, gdx
       real(kind=kind_phys), parameter :: z0lo=0.1, z0up=1.0
 !
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat, alon, alat
+      common /testpt/ testlon,testlat
+      logical :: doprint
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.		&
+                         abs(testlat-alat).lt.small
+
 
       ! Initialize CCPP error handling variables
       errmsg = ''
@@ -91,6 +99,14 @@ contains
       if (frac_grid) then
 
         do i=1, im
+
+         alon=xlon(i)*rad2deg
+         alat=xlat(i)*rad2deg
+         if (doprint(alon,alat))							&
+          print 98,'entering GFS_surface_composites_post_run   lon,lat=',alon,alat,	&
+          'tsfc_wa',tsfc_wat(i)-frz
+ 99       format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98       format (/a,2f7.2/(4(a8,"=",es11.4)))
 
           ! Three-way composites (fields from sfc_diff)
           txl   = landfrac(i)            ! land fraction
@@ -367,6 +383,12 @@ contains
               stc(i,k) = tiice(i,k)
             enddo
           endif
+
+         alon=xlon(i)*rad2deg
+         alat=xlat(i)*rad2deg
+         if (doprint(alon,alat))							&
+          print 98,'exiting GFS_surface_composites_post_run   lon,lat=',alon,alat,	&
+          'tsfc_wa',tsfc_wat(i)-frz
 
         enddo
 

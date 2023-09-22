@@ -144,14 +144,14 @@
   type = real
   kind = kind_phys
   intent = in
-[tsurf_wat]
-  standard_name = surface_skin_temperature_after_iteration_over_water
-  long_name = surface skin temperature after iteration over water
-  units = K
+[xlat]
+  standard_name = latitude
+  long_name = latitude
+  units = radian
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
-  intent = inout
+  intent = in
 [tsfc_wat]
   standard_name = surface_skin_temperature_over_water
   long_name = surface skin temperature over water

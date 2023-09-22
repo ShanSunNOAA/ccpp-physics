@@ -20,10 +20,11 @@
       subroutine sfc_nst_pre_run
      &    (im, wet, tgice, tsfco, tsurf_wat,
      &     tseal, xt, xz, dt_cool, z_c, tref, cplflx,
-     &     oceanfrac, nthreads, errmsg, errflg)
+     &     xlon, xlat, oceanfrac, nthreads, errmsg, errflg)
 
       use machine , only : kind_phys
       use module_nst_water_prop, only: get_dtzm_2d
+      use module_nst_parameters, only : rad2deg
 
       implicit none
 
@@ -34,11 +35,11 @@
       logical, dimension(:), intent(in) :: wet
       real (kind=kind_phys), intent(in) :: tgice
       real (kind=kind_phys), dimension(:), intent(in) ::
-     &      tsfco, xt, xz, dt_cool, z_c, oceanfrac
+     &     xlon, xlat, tsfco, xt, xz, dt_cool, z_c, oceanfrac
       logical, intent(in) :: cplflx
 
 !  ---  input/outputs:
-      real (kind=kind_phys), dimension(:), intent(inout) ::
+      real (kind=kind_phys), dimension(:), intent(out) ::
      &    tsurf_wat, tseal, tref
 
 !  ---  outputs:
@@ -51,8 +52,14 @@
      &                                   one  = 1.0_kp,
      &                                   half = 0.5_kp,
      &                                   omz1 = 2.0_kp
-      real(kind=kind_phys) :: tem1, tem2, dnsst
+      real(kind=kind_phys) :: tem1, tem2, dnsst, alon, alat
       real(kind=kind_phys), dimension(im) :: dtzm, z_c_0
+
+      logical :: doprint
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+      common /testpt/ testlon,testlat           ! (values defined in dcyc2t3.f)
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.
+     &                   abs(testlat-alat).lt.small
 
       ! Initialize CCPP error handling variables
       errmsg = ''
@@ -92,6 +99,19 @@
           endif
         enddo
       endif
+
+      do i=1,im
+        alon=xlon(i)*rad2deg
+        alat=xlat(i)*rad2deg
+        if (doprint(alon,alat))
+     &    print 98,'exiting sfc_nst_run_pre   lon,lat=',alon,alat,
+     &     'tsfco',tsfco(i)-frz,
+     &     'tseal',tseal(i)-frz,
+     &     'tref',tref(i)-frz,
+     &     'tsurf_w',tsurf_wat(i)-frz
+ 99     format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98     format (/a,2f7.2/(4(a8,"=",es11.4)))
+      end do
 
       return
       end subroutine sfc_nst_pre_run

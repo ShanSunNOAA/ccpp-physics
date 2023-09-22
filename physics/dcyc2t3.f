@@ -40,7 +40,7 @@
 !    call dcyc2t3                                                       !
 !      inputs:                                                          !
 !          ( solhr,slag,sdec,cdec,sinlat,coslat,                        !
-!            xlon,coszen,tsfc_lnd,tsfc_ice,tsfc_wat,                    !
+!            xlon,xlat,coszen,tsfc_lnd,tsfc_ice,tsfc_wat,               !
 !            tf,tsflw,sfcemis_lnd,sfcemis_ice,sfcemis_wat,              !
 !            sfcdsw,sfcnsw,sfcdlw,sfculw,swh,swhc,hlw,hlwc,             !
 !            sfcnirbmu,sfcnirdfu,sfcvisbmu,sfcvisdfu,                   !
@@ -64,6 +64,7 @@
 !     sinlat(im), coslat(im):                                           !
 !                  - real, sin and cos of latitude                      !
 !     xlon   (im)  - real, longitude in radians                         !
+!     xlat   (im)  - real, latitude in radians                          !
 !     coszen (im)  - real, avg of cosz over daytime sw call interval    !
 !     tsfc_lnd  (im) - real, bottom surface temperature over land (k)   !
 !     tsfc_ice  (im) - real, bottom surface temperature over ice (k)    !
@@ -172,7 +173,7 @@
       subroutine dcyc2t3_run                                            &
 !  ---  inputs:
      &     ( solhr,slag,sdec,cdec,sinlat,coslat,                        &
-     &       con_g, con_cp, con_pi, con_sbc,                            &
+     &       con_g, con_cp, con_pi, con_sbc,xlat,                       &
      &       xlon,coszen,tsfc_lnd,tsfc_ice,tsfc_wat,tf,tsflw,tsfc,      &
      &       sfcemis_lnd, sfcemis_ice, sfcemis_wat,                     &
      &       sfcdsw,sfcnsw,sfcdlw,swh,swhc,hlw,hlwc,                    &
@@ -195,6 +196,7 @@
      &     )
 !
       use machine,         only : kind_phys
+      use module_nst_parameters, only : rad2deg
 
       implicit none
 !
@@ -209,8 +211,6 @@
 !  ---  inputs:
       integer, intent(in) :: im, levs
 
-!     integer, intent(in) :: ipr
-!     logical lprnt
       logical, dimension(:), intent(in) :: dry, icy, wet
       logical, intent(in) :: use_LW_jacobian, damp_LW_fluxadj,          &
      &     pert_radtend, use_med_flux
@@ -219,7 +219,7 @@
      &     deltim, fhswr, lfnc_k, lfnc_p0
 
       real(kind=kind_phys), dimension(:), intent(in) ::                 &
-     &      sinlat, coslat, xlon, coszen, tf, tsflw, sfcdlw,            &
+     &      sinlat, coslat, xlon, xlat, coszen, tf, tsflw, sfcdlw,      &
      &      sfcdsw, sfcnsw, sfculw, sfculw_med, tsfc, tsfc_radtime
 
       real(kind=kind_phys), dimension(:), intent(in) ::                 &
@@ -265,16 +265,59 @@
       real(kind=kind_phys), dimension(im,levs+1) :: flxlwup_adj,        &
      &     flxlwdn_adj
       real(kind=kind_phys) :: fluxlwnet_adj,fluxlwnet,dT_sfc,           &
-     &fluxlwDOWN_jac,lfnc,c1
+     &fluxlwDOWN_jac,lfnc,c1,alon,alat
       ! Length scale for flux-adjustment scaling
       real(kind=kind_phys), parameter ::                                &
      &     L = 1.
       ! Scaling factor for downwelling LW Jacobian profile.
-      real(kind=kind_phys), parameter ::                                &
-     &     gamma = 0.2
-!
+      real(kind=kind_phys), parameter :: gamma = 0.2
+
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+      common /testpt/ testlon,testlat
+      logical :: doprint
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.
+     &                   abs(testlat-alat).lt.small
+
 !===> ...  begin here
-!
+
+!     testlon=145.56  ; testlat= -4.02
+!     testlon=201.824 ; testlat= 21.538
+!     testlat=169.215 ; testlon=-45.193
+
+!     testlon=180.08  ; testlat= 25.04
+!     testlon=180.08  ; testlat= 24.58
+!     testlon=180.08  ; testlat= 25.51
+!     testlon= 179.57 ; testlat=25.55
+!     testlon= 179.57 ; testlat=25.08
+!     testlon= 179.57 ; testlat=24.61
+!     testlon= 180.59 ; testlat=25.47
+!     testlon= 180.59 ; testlat=25.01
+!     testlon= 180.59 ; testlat=24.54
+
+
+!     testlon= 179.57  ; testlat= -0.26
+!     testlon= 180.08  ; testlat= -0.26
+!     testlon= 180.59  ; testlat= -0.26
+!     testlon= 179.57  ; testlat=  0.77
+!     testlon= 179.57  ; testlat=  0.26
+!     testlon= 180.08  ; testlat=  0.77
+!     testlon= 180.08  ; testlat=  0.26
+!     testlon= 180.59  ; testlat=  0.77
+!     testlon= 180.59  ; testlat=  0.26
+
+
+      do i = 1, im
+       alon=xlon(i)*rad2deg
+       alat=xlat(i)*rad2deg
+       if (doprint(alon,alat))
+     &  print 98,'entering dcyc2t3   lon,lat=',alon,alat,
+     &  'sfcdlw',sfcdlw(i),
+     &  'sfculw',sfculw(i),
+     &  'sfcnsw',sfcnsw(i),
+     &  'tsfc',tsfc(i)-frz,
+     &  'tsfc_wa',tsfc_wat(i)-frz
+      end do
+    
       ! Initialize CCPP error handling variables
       errmsg = ''
       errflg = 0
@@ -356,10 +399,6 @@
             end if
          endif
 
-!     if (lprnt .and. i == ipr) write(0,*)' in dcyc3: dry==',dry(i)
-!    &,' wet=',wet(i),' icy=',icy(i),' tsfc3=',tsfc3(i,:)
-!    &,' sfcemis=',sfcemis(i,:),' adjsfculw=',adjsfculw(i,:)
-!
 
 !>  - normalize by average value over radiation period for daytime.
         if ( xcosz(i) > f_eps .and. coszen(i) > f_eps ) then
@@ -459,6 +498,20 @@
          endif
       endif
 !
+      do i = 1, im
+       alon=xlon(i)*rad2deg
+       alat=xlat(i)*rad2deg
+       if (doprint(alon,alat))
+     &  print 98,'exiting dcyc2t3   lon,lat=',alon,alat,
+     &  'adjdsw',adjsfcdsw(i),
+     &  'adjnsw',adjsfcnsw(i),
+     &  'adjdlw',adjsfcdlw(i),
+     &  'adjulw',adjsfculw(i),
+     &  'ulw_wat',adjsfculw_wat(i)
+ 99   format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98   format (/a,2f7.2/(4(a8,"=",es11.4)))
+      end do
+
       return
 !...................................
       end subroutine dcyc2t3_run

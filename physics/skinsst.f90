@@ -75,6 +75,8 @@ module skinsst
     plyr1, 		& ! mid-layer 1 pressure			in
     tlyr1, 		& ! mid-layer 1 temperature			in
     qlyr1,		& ! mid-layer 1 humidity			in
+    ulyr1,		& ! mid-layer 1 zonal wind			in
+    vlyr1,		& ! mid-layer 1 meridional wind			in
     compres,		& ! adiabat.compression factor, layer 1 => sfc	in
     cm,			& ! drag coeff for momentum			in
     ch,			& ! drag coeff for heat and moisture		in
@@ -95,21 +97,26 @@ module skinsst
     gflux,		& ! heat flux over ground			out
     cmm,		& ! momentum exchange coeff			out
     chh,		& ! thermal exchange coeff			out
-    use_flake,		& ! lake model flag
+    lseaspray,		& ! sea spray flag				in
+    fm,			& ! Monin-Obukhov function at surface		in
+    fm10,		& ! Monin-Obukhov function at 10m		in
+    use_flake,		& ! lake model flag				in
     errmsg, errflg)
 
    use machine , only : kind_phys
 !  use module_nst_parameters, only : rad2deg
    use state_eqn
+   use funcphys, only : fpvs		! vapor pressure
 
    implicit none
 
 ! --- input:
    integer, intent(in) :: im,iter
    logical, dimension(:), intent(in) :: wet, use_flake
+   logical, intent(in) :: lseaspray
    real (kind=kind_phys), dimension(:), intent(in) :: xlon,xlat,	&
       sfcemis, dlwflx, sfcnsw, tsfco, wind, psfc, plyr1, tlyr1, qlyr1,	&
-      cm, ch, compres, stress
+      ulyr1, vlyr1, cm, ch, compres, stress, fm, fm10
    real (kind=kind_phys), intent(in) :: timestep, hvap, cp, rd, eps,	&
       sbc
 
@@ -138,6 +145,12 @@ module skinsst
    real :: rnl_ts, hs_ts, rf_ts, alpha, beta, rch, ustar,		&
       hist(0:itmax) = 0., x1, x2, x3, y1, y2, y3, dif1, dif2, dif3
 
+!  variables for sea spray effect
+   real (kind=kind_phys) :: f10m, u10m, v10m, ws10, ru10, qss1,		&
+                            bb1, hflxs, evaps, ptem, tem
+   real (kind=kind_phys), parameter :: alps=0.75,bets=0.75,gams=0.15,	&
+                            ws10cr=30., conlf=7.2e-9, consf=6.4e-8
+
    logical :: doprint, details
    real, parameter :: rad2deg = 57.2957795
    real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
@@ -157,7 +170,7 @@ module skinsst
 
      alon=xlon(i)*rad2deg
      alat=xlat(i)*rad2deg
-     if (doprint(alon,alat))						&
+     if (doprint(alon,alat)) then
       print 98,'entering skinsst_run   lon,lat=',alon,alat,		&
       'stress',stress(i),		& ! wind stress (N/m^2)
 !     'sfcemis',sfcemis(i),		& ! sfc emissivity
@@ -173,6 +186,8 @@ module skinsst
       'compres',compres(i),		& ! midlyr-to-sfc adiab.compression
       'tskin',tskin(i)-frz,		& ! surface skin temperature
       'tsfco',tsfco(i)-frz		  ! ocean top layer temperature
+      print '(5(a13,"=",l2))','lseaspray',lseaspray
+     end if
  99  format (/a,2f7.2/(5(a8,"=",f7.2)))
  98  format (/a,2f7.2/(4(a8,"=",es11.4)))
 
@@ -282,6 +297,29 @@ module skinsst
 
      ulwflx(i) = ulwflx(i) + dlwflx(i)*(1.-sfcemis(i))/sfcemis(i)
 
+     if (lseaspray .and. .not. use_flake(i)) then
+       f10m = fm10(i) / fm(i)
+       u10m = f10m * ulyr1(i)
+       v10m = f10m * vlyr1(i)
+       ws10 = sqrt(u10m*u10m + v10m*v10m)
+       ws10 = max(ws10,1.)
+       ws10 = min(ws10,ws10cr)
+       tem = .015 * ws10 * ws10
+       ru10 = 1. - .087 * log(10./tem)
+       qss1 = fpvs(tlyr1(i))
+       qss1 = eps * qss1 / (plyr1(i) + (eps-1.) * qss1)
+       tem = rd * cp * tlyr1(i) * tlyr1(i)
+       tem = 1. + eps * hvap * hvap * qss1 / tem
+       bb1 = 1. / tem
+       evaps = conlf * (ws10**5.4) * ru10 * bb1
+       evaps = evaps * rho_air * hvap * (qss1 - qlyr1(i))
+       evap(i) = evap(i) + alps * evaps
+       hflxs = consf * (ws10**3.4) * ru10
+       hflxs = hflxs * rho_air * cp * (tskin(i) - tlyr1(i))
+       ptem = alps - gams
+       hflx(i) = hflx(i) + bets * hflxs - ptem * evaps
+     endif
+
      if (doprint(alon,alat))						&
       print 98,'exiting skinsst_run   lon,lat=',alon,alat,		&
       'loop',float(loop),		&
@@ -298,7 +336,8 @@ module skinsst
       'dt_warm',dt_warm(i),		& ! temperature increment due to SW
       'tskin',tskin(i)-frz,		& ! skin temperature
       'cmm',cmm(i),			&
-      'chh',chh(i)
+      'chh',chh(i),			&
+      'spray',bets*hflxs-ptem*evaps	  ! spray contrib. to heat flux
 
 ! --- convert fluxes from W/m^2 to "kinematic" i.e. velocity x fluxed variable
      hflx(i) = hflx(i)/(rho_air * cp)				! deg m/sec

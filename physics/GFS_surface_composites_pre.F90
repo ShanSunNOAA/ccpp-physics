@@ -5,6 +5,7 @@ module GFS_surface_composites_pre
 
    use machine, only: kind_phys
    use physparam, only : iemsflg
+   use module_nst_parameters, only : rad2deg
 
    implicit none
 
@@ -23,7 +24,7 @@ contains
 !!
    subroutine GFS_surface_composites_pre_run (im, lkm, frac_grid,                                                         &
                                  flag_cice, cplflx, cplice, cplwav2atm, lsm, lsm_ruc,                                     &
-                                 landfrac, lakefrac, lakedepth, oceanfrac, frland,                                        &
+                                 landfrac, lakefrac, lakedepth, oceanfrac, frland, xlon, xlat,                            &
                                  dry, icy, lake, use_flake, wet, hice, cice, zorlo, zorll, zorli,                         &
                                  snowd,            snowd_lnd, snowd_ice, tprcp, tprcp_wat,                                &
                                  tprcp_lnd, tprcp_ice, uustar, uustar_wat, uustar_lnd, uustar_ice,                        &
@@ -41,12 +42,12 @@ contains
       logical,              dimension(:), intent(inout)  :: dry, icy, lake, use_flake, wet
       real(kind=kind_phys), dimension(:), intent(in   )  :: landfrac, lakefrac, lakedepth, oceanfrac
       real(kind=kind_phys), dimension(:), intent(inout)  :: cice, hice
-      real(kind=kind_phys), dimension(:), intent(  out)  :: frland
-      real(kind=kind_phys), dimension(:), intent(in   )  :: snowd, tprcp, uustar, weasd, qss
+      real(kind=kind_phys), dimension(:), intent(  out)  :: frland, tsfc_wat
+      real(kind=kind_phys), dimension(:), intent(in   )  :: snowd, tprcp, uustar, weasd, qss, xlon, xlat
 
       real(kind=kind_phys), dimension(:), intent(inout)  :: tsfc, tsfco, tsfcl, tisfc
       real(kind=kind_phys), dimension(:), intent(inout)  :: snowd_lnd, snowd_ice, tprcp_wat,            &
-                    tprcp_lnd, tprcp_ice, tsfc_wat, tsurf_wat,tsurf_lnd, tsurf_ice,                     &
+                    tprcp_lnd, tprcp_ice, tsurf_wat,tsurf_lnd, tsurf_ice,                               &
                     uustar_wat, uustar_lnd, uustar_ice, weasd_lnd, weasd_ice,                           &
                     qss_wat, qss_lnd, qss_ice, ep1d_ice, gflx_ice
       real(kind=kind_phys),                intent(in   ) :: tgice
@@ -66,6 +67,12 @@ contains
 
       ! Local variables
       integer :: i
+
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat, alon, alat
+      common /testpt/ testlon,testlat
+      logical :: doprint
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.				&
+                         abs(testlat-alat).lt.small
 
       ! Initialize CCPP error handling variables
       errmsg = ''
@@ -276,6 +283,15 @@ contains
         enddo
       elseif(lsm /= lsm_ruc) then ! do not do snow initialization  with RUC lsm
         do i=1,im
+
+         alon=xlon(i)*rad2deg
+         alat=xlat(i)*rad2deg
+         if (doprint(alon,alat))							&
+          print 98,'exiting GFS_surface_composites_pre_run   lon,lat=',alon,alat,	&
+          'tsfc_wa',tsfc_wat(i)-frz
+ 99       format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98       format (/a,2f7.2/(4(a8,"=",es11.4)))
+
           if (icy(i)) then
             if (kdt == 1 .or. (.not. cplflx .or. lakefrac(i) > zero)) then
               snowd_lnd(i) = zero

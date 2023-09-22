@@ -18,7 +18,7 @@
      &       pi, tgice, sbc, ps, u1, v1, t1, q1, tref, cm, ch,          &
      &       lseaspray, fm, fm10,                                       &
      &       prsl1, prslki, prsik1, prslk1, wet, use_flake, xlon,       &
-     &       sinlat, stress,                                            &
+     &       xlat, sinlat, stress,                                      &
      &       sfcemis, dlwflx, sfcnsw, rain, timestep, kdt, solhr,xcosz, &
      &       wind, flag_iter, flag_guess, nstf_name1, nstf_name4,       &
      &       nstf_name5, lprnt, ipr, thsfc_loc,                         &
@@ -37,7 +37,7 @@
 !       inputs:                                                         !
 !          ( im, ps, u1, v1, t1, q1, tref, cm, ch,                      !
 !            lseaspray, fm, fm10,                                       !
-!            prsl1, prslki, wet, use_flake, xlon, sinlat, stress,       !
+!            prsl1, prslki, wet, use_flake, xlon, xlat, sinlat, stress, !
 !            sfcemis, dlwflx, sfcnsw, rain, timestep, kdt,solhr,xcosz,  !
 !            wind,  flag_iter, flag_guess, nstf_name1, nstf_name4,      !
 !            nstf_name5, lprnt, ipr, thsfc_loc,                         !
@@ -91,6 +91,7 @@
 !     use_flake- logical, =T if flake model is used for lake       im   !
 !     icy      - logical, =T if any ice                            im   !
 !     xlon     - real, longitude         (radians)                 im   !
+!     xlat     - real, latitude         (radians)                 im   !
 !     sinlat   - real, sin of latitude                             im   !
 !     stress   - real, wind stress       (n/m**2)                  im   !
 !     sfcemis  - real, sfc lw emissivity (fraction)                im   !
@@ -185,7 +186,7 @@
      &       epsm1, rvrdm1, rd, rhw0, sbc, pi, tgice
       real (kind=kind_phys), dimension(:), intent(in) :: ps, u1, v1,    &
      &       t1, q1, tref, cm, ch, fm, fm10,                            &
-     &       prsl1, prslki, prsik1, prslk1, xlon, xcosz,                &
+     &       prsl1, prslki, prsik1, prslk1, xlon, xlat, xcosz,          &
      &       sinlat, stress, sfcemis, dlwflx, sfcnsw, rain, wind
       real (kind=kind_phys), intent(in) :: timestep
       real (kind=kind_phys), intent(in) :: solhr
@@ -206,7 +207,7 @@
      &      z_c, c_0, c_d, w_0, w_d, d_conv, ifd, qrain
 
 !  ---  outputs:
-      real (kind=kind_phys), dimension(:), intent(inout) ::             &
+      real (kind=kind_phys), dimension(:), intent(out) ::               &
      &       qsurf, gflux, cmm, chh, evap, hflx, ep
 
       character(len=*), intent(out) :: errmsg
@@ -218,7 +219,7 @@
       integer :: k,i
 !
       real (kind=kind_phys), dimension(im) ::  q0, qss, rch,
-     &                     rho_a, theta1, tv1, wndmag
+     &                     rho_a, theta1, tv1, wndmag, dt_warm
 
       real(kind=kind_phys) elocp,tem,cpinv,hvapi
 !
@@ -239,9 +240,9 @@
       real(kind=kind_phys) le,fc,dwat,dtmp,wetc,alfac,ustar_a,rich
       real(kind=kind_phys) rnl_ts,hs_ts,hl_ts,rf_ts,q_ts
       real(kind=kind_phys) fw,q_warm
-      real(kind=kind_phys) t12,alon,tsea,sstc,dta,dtz
+      real(kind=kind_phys) t12,alon,alat,tsea,sstc,dta,dtz
       real(kind=kind_phys) zsea1,zsea2,soltim
-      logical do_nst
+      logical do_nst, doprint
 
 !  external functions called: iw3jdn
       integer :: iw3jdn
@@ -257,6 +258,11 @@
       real (kind=kind_phys), parameter :: alps=0.75,bets=0.75,gams=0.15,
      &                       ws10cr=30., conlf=7.2e-9, consf=6.4e-8
 !
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+      common /testpt/ testlon,testlat		! (values defined in dcyc2t3.f)
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.
+     &                   abs(testlat-alat).lt.small
+
 !======================================================================================================
 cc
       ! Initialize CCPP error handling variables
@@ -278,6 +284,35 @@ cc
 !       flag(i) = wet(i) .and. .not.icy(i) .and. flag_iter(i)
         flag(i) = wet(i) .and. flag_iter(i) .and. .not. use_flake(i)
         do_nst  = do_nst .or. flag(i)
+
+        alon=xlon(i)*rad2deg
+        alat=xlat(i)*rad2deg
+        if (doprint(alon,alat)) then
+          print 98,'entering sfc_nst_run   lon,lat=',alon,alat,	
+     &    'xt',xt(i),
+     &    'xs',xs(i),
+     &    'xu',xu(i),
+     &    'xv',xv(i),
+     &    'xz',xz(i),
+     &    'xtts',xtts(i),
+     &    'xzts',xzts(i),
+     &    'wind',wind(i),		! wind speed
+     &    'prsl11',prsl1(i),		! layer 1 presure
+     &    't1',t1(i)-frz,		! layer 1 air temp
+     &    'q1',q1(i),			! layer 1 humidity
+     &    'tskin',tskin(i)-frz,		! surface skin temperature
+     &    'dtcool',dt_cool(i),		! cool-skin correction
+     &    'tref',tref(i)-frz
+         print '(5(a13,"=",l2))',
+     &    'lspeaspray',lseaspray,
+     &    'flag_iter',flag_iter(i),
+     &    'flag_guess',flag_guess(i),
+     &    'use_flake',use_flake(i),
+     &    'flag',flag(i)
+       end if
+ 99     format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98     format (/a,2f7.2/(4(a8,"=",es11.4)))
+
       enddo
       if (.not. do_nst) return
 !
@@ -547,6 +582,7 @@ cc
 
 !  apply mta
 !>  - Call dtm_1p_mta() to apply maximum temperature adjustment.
+       dt_warm(i) = 2.*xt(i)/xz(i)
        sstc = tref(i) + (xt(i)+xt(i))/xz(i) - dt_cool(i)
 
               if ( sstc > sst_max ) then
@@ -680,6 +716,19 @@ cc
       enddo
 !
       do i=1,im
+
+          alon=xlon(i)*rad2deg
+          alat=xlat(i)*rad2deg
+          if (doprint(alon,alat))
+     &      print 98,'exiting sfc_nst_run   lon,lat=',alon,alat,	
+     &      'evap',evap(i),
+     &      'hflx',hflx(i),
+     &      'tsurf',tsurf(i)-frz,
+     &      'tskin',tskin(i)-frz,
+     &      'xt',xt(i),
+     &      'xz',xz(i),
+     &      'dt_warm',dt_warm(i)
+
         if ( flag(i) ) then
           tem     = one / rho_a(i)
           hflx(i) = hflx(i) * tem * cpinv

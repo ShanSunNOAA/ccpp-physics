@@ -87,6 +87,22 @@
   dimensions = (horizontal_loop_extent)
   type = integer
   intent = in
+[xlon]
+  standard_name = longitude
+  long_name = longitude of grid box
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+[xlat]
+  standard_name = latitude
+  long_name = latitude of grid box
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
 [dry]
   standard_name = flag_nonzero_land_surface_fraction
   long_name = flag indicating presence of some land surface area fraction

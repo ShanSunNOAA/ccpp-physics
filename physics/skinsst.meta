@@ -93,6 +93,22 @@
   type = real
   kind = kind_phys
   intent = in
+[ulyr1]
+  standard_name = x_wind_at_surface_adjacent_layer
+  long_name = x component of surface layer wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+[vlyr1]
+  standard_name = y_wind_at_surface_adjacent_layer
+  long_name = y component of surface layer wind
+  units = m s-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
 [qsat]
   standard_name = surface_specific_humidity_over_water
   long_name = surface air saturation specific humidity over water
@@ -292,6 +308,29 @@
   type = real
   kind = kind_phys
   intent = inout
+[lseaspray]
+  standard_name = flag_for_sea_spray
+  long_name = flag for sea spray parameterization
+  units = flag
+  dimensions = ()
+  type = logical
+  intent = in
+[fm]
+  standard_name = Monin_Obukhov_similarity_function_for_momentum_over_water
+  long_name = Monin-Obukhov similarity function for momentum over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+[fm10]
+  standard_name = Monin_Obukhov_similarity_function_for_momentum_at_10m_over_water
+  long_name = Monin-Obukhov similarity parameter for momentum at 10m over water
+  units = none
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
 [use_flake]
   standard_name = flag_for_using_flake
   long_name = flag indicating lake points using flake model
