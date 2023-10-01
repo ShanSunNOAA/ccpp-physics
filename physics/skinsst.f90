@@ -100,7 +100,6 @@ module skinsst
     lseaspray,		& ! sea spray flag				in
     fm,			& ! Monin-Obukhov function at surface		in
     fm10,		& ! Monin-Obukhov function at 10m		in
-    use_flake,		& ! lake model flag				in
     errmsg, errflg)
 
    use machine , only : kind_phys
@@ -112,7 +111,7 @@ module skinsst
 
 ! --- input:
    integer, intent(in) :: im,iter
-   logical, dimension(:), intent(in) :: wet, use_flake
+   logical, dimension(:), intent(in) :: wet
    logical, intent(in) :: lseaspray
    real (kind=kind_phys), dimension(:), intent(in) :: xlon,xlat,	&
       sfcemis, dlwflx, sfcnsw, tsfco, wind, psfc, plyr1, tlyr1, qlyr1,	&
@@ -297,7 +296,7 @@ module skinsst
 
      ulwflx(i) = ulwflx(i) + dlwflx(i)*(1.-sfcemis(i))/sfcemis(i)
 
-     if (lseaspray .and. .not. use_flake(i)) then
+     if (lseaspray) then
        f10m = fm10(i) / fm(i)
        u10m = f10m * ulyr1(i)
        v10m = f10m * vlyr1(i)
