@@ -2125,7 +2125,8 @@
         do k = 1, NLAY
           do i = 1, IX
             clwf(i,k) = clw(i,k,ntcw) +  clw(i,k,ntiw) + clw(i,k,ntsw)
-     &      + clw(i,k,ntrw) + cnvw(i,k)
+!ss  &      + clw(i,k,ntrw) + cnvw(i,k)  ! remove interaction btw radiation and convective cloud
+     &      + clw(i,k,ntrw)
           enddo
         enddo
 
