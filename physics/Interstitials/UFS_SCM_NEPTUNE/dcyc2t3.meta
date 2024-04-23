@@ -1,7 +1,7 @@
 [ccpp-table-properties]
   name = dcyc2t3
   type = scheme
-  dependencies = ../../hooks/machine.F
+  dependencies = ../../hooks/machine.F,../../hooks/physcons.F90
 
 ########################################################################
 [ccpp-arg-table]
@@ -90,6 +90,14 @@
 [xlon]
   standard_name = longitude
   long_name = longitude of grid box
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+[xlat]
+  standard_name = latitude
+  long_name = latitude of grid box
   units = radian
   dimensions = (horizontal_loop_extent)
   type = real
@@ -519,6 +527,14 @@
 [adjsfcdlw]
   standard_name = surface_downwelling_longwave_flux
   long_name = surface downwelling longwave flux at current time
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = out
+[adjsfculw]
+  standard_name = surface_upwelling_longwave_flux
+  long_name = surface upwelling longwave flux at current time
   units = W m-2
   dimensions = (horizontal_loop_extent)
   type = real

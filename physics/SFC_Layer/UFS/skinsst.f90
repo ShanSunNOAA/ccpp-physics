@@ -87,6 +87,7 @@ module skinsst
     sbc,		& ! stefan-boltzmann constant			in
     ulwflx,             & ! upwelling LW flux				inout
     tskin,		& ! skin temp					inout
+    xzts,		& ! holding place for tskin			inout
     qsat,		& ! saturation specif. humidity			out
     z_c,		& ! sub-layer cooling thickness			out
     dt_warm,		& ! warm-layer surface warming amount		out
@@ -103,7 +104,6 @@ module skinsst
     errmsg, errflg)
 
    use machine , only : kind_phys
-!  use module_nst_parameters, only : rad2deg
    use state_eqn
    use funcphys, only : fpvs		! vapor pressure
 
@@ -121,7 +121,7 @@ module skinsst
 
 ! --- inout:
    real (kind=kind_phys), dimension(:), intent(inout) :: ulwflx,	&
-      tskin, dt_cool
+      tskin, dt_cool, xzts
 
 ! --- output:
    real (kind=kind_phys), dimension(:), intent(out) :: evap, hflx,	&
@@ -148,10 +148,10 @@ module skinsst
    real (kind=kind_phys), parameter :: alps=0.75,bets=0.75,gams=0.15,	&
                             ws10cr=30., conlf=7.2e-9, consf=6.4e-8
 
-   logical :: doprint, details
-   real, parameter :: rad2deg = 57.2957795
+   logical :: doprint, details, single_1, single_2
    real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
-   common /testpt/ testlon,testlat		! (values defined in dcyc2t3.f)
+   real,parameter :: rad2deg = 57.2957795
+   common /testpt/ testlon,testlat
    doprint(alon,alat)=abs(testlon-alon).lt.small .and.			&
                       abs(testlat-alat).lt.small
 
@@ -161,10 +161,43 @@ module skinsst
    grnblu(alat)= 1. - (alat/90.)**2 * (alat/90.)**2 * (1.5 - (alat/90.)**2)
 
 ! --- piston velocity: at 0 m/s, molecular diffusion only.
-! ---                  at 8 m/s, homogenize top 3 m during 600 sec time step
-   piston(vel)=1.e-4 + 1.6e-3*(vel/8.)**2
+! ---                  at 8 m/s, destroy warm layer during 600 sec time step
+! ---                  based on 1 m thickness scale.
+   piston(vel)= 1.4e-7 + 1.66667e-3*(vel/8.)**2
 
    if (iter.gt.1) return
+
+!  testlon=145.56  ; testlat= -4.02
+!  testlon=201.824 ; testlat= 21.538
+!  testlat=169.215 ; testlon=-45.193
+
+!  testlon=180.08  ; testlat= 25.04
+!  testlon=180.08  ; testlat= 24.58
+!  testlon=180.08  ; testlat= 25.51
+!  testlon= 179.57 ; testlat=25.55
+!  testlon= 179.57 ; testlat=25.08
+!  testlon= 179.57 ; testlat=24.61
+!  testlon= 180.59 ; testlat=25.47
+!  testlon= 180.59 ; testlat=25.01
+!  testlon= 180.59 ; testlat=24.54
+
+!  testlon= 179.57  ; testlat= -0.26
+!  testlon= 180.08  ; testlat= -0.26
+!  testlon= 180.59  ; testlat= -0.26
+!  testlon= 179.57  ; testlat=  0.77
+!  testlon= 179.57  ; testlat=  0.26
+!  testlon= 180.08  ; testlat=  0.77
+!  testlon= 180.08  ; testlat=  0.26
+!  testlon= 180.59  ; testlat=  0.77
+!  testlon= 180.59  ; testlat=  0.26
+
+   testlon= 215.00  ; testlat=-76.24
+
+! --- temporary:
+!  print *,'entering skinsst, test point =',testlon,testlat
+
+!  single_1 = .true.
+!  single_2 = .true.
 
    do i = 1,im
     if (wet(i)) then
@@ -172,22 +205,26 @@ module skinsst
      alon=xlon(i)*rad2deg
      alat=xlat(i)*rad2deg
      if (doprint(alon,alat)) then
+!    if (single_1) then			! temporary
       print 98,'entering skinsst_run   lon,lat=',alon,alat,		&
       'stress',stress(i),		& ! wind stress (N/m^2)
 !     'sfcemis',sfcemis(i),		& ! sfc emissivity
       'wind',wind(i),			& ! surface wind
+      'pstonE3',piston(wind(i))*1.e3,	& ! piston velocity
       'sfcnsw',sfcnsw(i),		& ! total sky net SW flx into ocean
       'dlwflx',dlwflx(i),		& ! absorbed downwelling LW flux
       'ulwflx',ulwflx(i),		& ! upwelling LW flux
-      'psfc',psfc(i),			& ! surface pressure (mb)
-      'plyr1',plyr1(i),			& ! atm.layer 1 presure
+      'psfc',psfc(i)*.01,		& ! surface pressure (mb)
+      'plyr1',plyr1(i)*.01,		& ! atm.layer 1 presure
       'tlyr1',tlyr1(i)-frz,		& ! atm.layer 1 air temp
       'qlyr1',qlyr1(i),			& ! atm.layer 1 humidity
 !     'sigma_t',sig(tlyr1(i)-frz,sss),	& ! sea water density - 1000
       'compres',compres(i),		& ! midlyr-to-sfc adiab.compression
+      'xzts',xzts(i)-frz,		& ! holding place for tskin
       'tskin',tskin(i)-frz,		& ! surface skin temperature
       'tsfco',tsfco(i)-frz		  ! ocean top layer temperature
       print '(5(a13,"=",l2))','lseaspray',lseaspray
+!    single_1 = .false.
      end if
  99  format (/a,2f7.2/(5(a8,"=",f7.2)))
  98  format (/a,2f7.2/(4(a8,"=",es11.4)))
@@ -208,19 +245,31 @@ module skinsst
 
 ! --- apply warm layer correction
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - -
-! --- dt_warm currently archived under the name "xtts".
+! --- tskin currently archived under the name "xzts".
 ! --- other unused arrays: c0,w0,wd,xs,xt,xu,xv
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      if (xzts(i).eq.0.) then
+       tskin(i) = tsfco(i)
+      else
+       tskin(i) = xzts(i)
+      end if
+      if (tskin(i)-frz.lt.-5.) print '(a,2f8.2,es13.3)',		&
+         'excessively cold tskin at lon,lat',alon,alat,tskin(i)-frz
 
-     dt_warm(i) = sfcnsw(i) * timestep 					&
+     if (sfcnsw(i).gt.0.) then
+      dt_warm(i) = sfcnsw(i) * timestep 				&
          / (2. * penetr * grnblu(alat) * rho_wat * spcifh)
-! --- note:  dt_warm is cumulative, dt_cool is not. remember: dt_cool > 0
-     tskin(i) = tskin(i) + dt_warm(i)					&
-! --- subtract old dt_cool
-        + dt_cool(i)
-! --- allow cooling by vertical diffusion
-     tskin(i) = tskin(i)						&
-        + (tsfco(i)-tskin(i)) * min(1.,piston(wind(i)) * timestep)
+! --- note: dt_warm is cumulative.
+      tskin(i) = tskin(i) + dt_warm(i)					&
+! --- subtract old dt_cool (dt_cool is not cumulative)
+        + dt_cool(i)			! sign convention: dt_cool > 0
+! --- add cooling by heat diffusion
+      tskin(i) = tskin(i) + (tsfco(i)-tskin(i))				&
+         * min(1.,timestep*piston(wind(i)))
+      else
+       dt_warm(i)=0.
+       tskin(i)=tsfco(i)
+      end if
 
 ! --- start cool-skin iteration, using regula falsi (aiming for x_n = y_n)
 ! --- x1,x2,x3,y1,y2,y3 are consecutive dt_cool approximations.
@@ -295,6 +344,9 @@ module skinsst
 
      tskin(i) = tskin(i)-dt_cool(i)		! dt_cool > 0 => cooling
 
+! --- save tskin for next call to skinsst
+     xzts(i) = tskin(i)
+
 ! --- according to  GFS_surface_composites_inter.F90,
 ! --- dlwflx is the absorbed portion of downwelling LW flux.
 ! --- hence, the total downwelling flux is dlwflx/sfcemis
@@ -325,7 +377,8 @@ module skinsst
        hflx(i) = hflx(i) + bets * hflxs - ptem * evaps
      endif
 
-     if (doprint(alon,alat))						&
+     if (doprint(alon,alat)) then
+!    if (single_2) then			! temporary
       print 98,'exiting skinsst_run   lon,lat=',alon,alat,		&
       'loop',float(loop),		&
       'virt',virt-frz,			& ! virtual temp
@@ -343,6 +396,8 @@ module skinsst
       'cmm',cmm(i),			&
       'chh',chh(i),			&
       'spray',bets*hflxs-ptem*evaps	  ! spray contrib. to heat flux
+!    single_2 = .false.
+     end if
 
 ! --- convert fluxes from W/m^2 to "kinematic" i.e. velocity x fluxed variable
      hflx(i) = hflx(i)/(rho_air * cp)				! deg m/sec
@@ -381,7 +436,7 @@ module skinsst
 
   use machine , only : kind_phys
   use module_nst_parameters, only: kw => tc_w,visw,cp_w, z_c_max,	&
-    z_c_ini,ustar_a_min,rad2deg
+    z_c_ini,ustar_a_min
   implicit none
   logical,intent(in) :: doprint
   real(kind=kind_phys), intent(in) :: ustar_a,f_nsol,f_sol_0,evap,	&
@@ -431,11 +486,11 @@ module skinsst
   endif
 
   if (doprint) print 98,'exiting coolskin   lon,lat=',alon,alat,	&
-!    'fxp',fxp,                 &
-!    'deltaf',deltaf,           &
-!    'hb',hb,                   &
-!    'bigc',bigc,               &
-!    'xi',xi,                   &
+     'fxp',fxp,                 &
+     'deltaf',deltaf,           &
+     'hb',hb,                   &
+     'bigc',bigc,               &
+     'xi',xi,                   &
      'deltat',deltat_c,         &	! skin layer temperature correction
      'z_c',z_c				! skin layer thickness
 
@@ -506,7 +561,7 @@ module skinsst
 
   if (doprint) print 98,'exiting surflx   lon,lat=',alon,alat,          &
      'tsfc',tsfc-frz,	& ! surface temperature
-     'psfc',psfc,	& ! surface pressure
+     'psfc',psfc*.01,	& ! surface pressure (mb)
      'pvap',pvap,	& ! saturation vapor pressure
      'qsat',qsat,	& !saturation specif. humidity
      'evap',evap,	& ! latent heat flux

@@ -125,6 +125,14 @@
   type = real
   kind = kind_phys
   intent = in
+[xzts]
+  standard_name = derivative_of_diurnal_thermocline_layer_thickness_wrt_surface_skin_temperature
+  long_name = d(xz)/d(ts)
+  units = m K-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
 [tskin]
   standard_name = surface_skin_temperature_over_water
   long_name = surface skin temperature over water
