@@ -274,6 +274,14 @@
   type = real
   kind = kind_phys
   intent = in
+[xlat]
+  standard_name = latitude
+  long_name = latitude
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
 [sinlat]
   standard_name = sine_of_latitude
   long_name = sine of latitude

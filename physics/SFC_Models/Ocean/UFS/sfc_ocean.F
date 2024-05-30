@@ -29,7 +29,7 @@
      &       prsl1, prslki, wet, use_lake_model, wind,                  &,  ! --- inputs
      &       flag_iter, use_med_flux, dqsfc_med, dtsfc_med,             &
      &       qsurf, cmm, chh, gflux, evap, hflx, ep,                    &   ! --- outputs
-     &       errmsg, errflg                                             &
+     &       xlon, xlat, errmsg, errflg                                 &
      &     )
 
 ! ===================================================================== !
@@ -116,7 +116,7 @@
 
       real (kind=kind_phys), dimension(:), intent(in) :: ps, u1, v1,    &
      &    t1, q1, tskin, cm, ch, fm, fm10, prsl1, prslki, wind,         &
-     &    usfco, vsfco
+     &    usfco, vsfco, xlon, xlat
 
 ! For sea spray effect
       logical, intent(in) :: lseaspray
@@ -140,14 +140,15 @@
 
 !  ---  locals:
 
-      real (kind=kind_phys) :: qss, rch, tem,
-     &                         elocp, cpinv, hvapi
+      real (kind=kind_phys) :: qss, rch, tem, elocp, cpinv, hvapi,
+     &    alon, alat
+
       real (kind=kind_phys), dimension(im) :: rho, q0
       real (kind=kind_phys), dimension(im) :: windrel
 
       integer :: i
 
-      logical :: flag(im)
+      logical :: flag(im), doprint
 !
 !  parameters for sea spray effect
 !
@@ -159,6 +160,12 @@
 !     real (kind=kind_phys), parameter :: alps=1.0, bets=1.0, gams=0.2,
       real (kind=kind_phys), parameter :: alps=0.75,bets=0.75,gams=0.15,
      &                       ws10cr=30., conlf=7.2e-9, consf=6.4e-8
+
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+      real,parameter :: rad2deg = 57.2957795
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.
+     &                   abs(testlat-alat).lt.small
+
 !
 !======================================================================================================
 !===> ...  begin here
@@ -171,12 +178,30 @@
       hvapi = one/hvap
       elocp = hvap/cp
 !
+      call get_testpt(testlon,testlat)
+
 !> - Flag for open water
       do i = 1, im
         flag(i) = (wet(i) .and. flag_iter(i) .and. use_lake_model(i)/=1)
 !> - Initialize variables. all units are supposedly m.k.s. unless specified
 !           ps is in pascals, wind is wind speed,
 !           rho is density, qss is sat. hum. at surface
+
+        alon=xlon(i)*rad2deg
+        alat=xlat(i)*rad2deg
+
+        if (abs(testlon-alon).lt.1. .and. abs(testlat-alat).lt.1.)
+     &    print 99,'test point candidate:  lon,lat=',alon,alat
+
+        if (doprint(alon,alat)) then
+         print 99,'entering sfc_ocean   lon,lat=',alon,alat,
+     &      't1',t1(i)-frz,
+     &      'q1',q1(i)*1.e3,
+     &      'tskin',tskin(i)-frz,
+     &      'wind',wind(i)
+        end if
+ 99    format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98    format (/a,2f7.2/(4(a8,"=",es11.4)))
 
         if ( flag(i) ) then
           if (use_med_flux) then
@@ -265,6 +290,16 @@
           evap(i)  = evap(i) * tem * hvapi
           ep(i)    = evap(i)
         endif
+
+        alon=xlon(i)*rad2deg
+        alat=xlat(i)*rad2deg
+        if (doprint(alon,alat)) then
+         print 99,'exiting sfc_ocean   lon,lat=',alon,alat,
+     &      'hflx',hflx(i),
+     &      'evap',evap(i),
+     &      'tskin',tskin(i)-frz,
+     &      'ep',ep(i)
+        end if
       enddo
 !
       return
