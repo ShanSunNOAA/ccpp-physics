@@ -95,6 +95,14 @@
   type = real
   kind = kind_phys
   intent = in
+[xlat]
+  standard_name = latitude
+  long_name = latitude of grid box
+  units = radian
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
 [coszen]
   standard_name = cosine_of_solar_zenith_angle_for_daytime_points_on_radiation_timestep
   long_name = average of cosine of zenith angle over daytime shortwave call time interval
@@ -526,6 +534,14 @@
 [adjsfcdlw]
   standard_name = surface_downwelling_longwave_flux
   long_name = surface downwelling longwave flux at current time
+  units = W m-2
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = out
+[adjsfculw]
+  standard_name = surface_upwelling_longwave_flux
+  long_name = surface upwelling longwave flux at current time
   units = W m-2
   dimensions = (horizontal_loop_extent)
   type = real
