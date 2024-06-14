@@ -565,7 +565,7 @@ end module skinsst
 !  testlon= 215.00  ; testlat=-76.24
 !  testlon= 273.39  ; testlat= 47.79
 !  testlon= 273.76  ; testlat= 46.14
-   testlon= 274.14  ; testlat= 46.89
+!  testlon= 274.14  ; testlat= 46.89
 !  testlon= 274.53  ; testlat= 47.65
 !  testlon= 274.84  ; testlat= 46.00
 
