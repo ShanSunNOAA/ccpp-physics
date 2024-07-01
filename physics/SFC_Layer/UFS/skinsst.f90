@@ -136,7 +136,7 @@ module skinsst
      spcifh = 3990.,		& ! seawater specific heat
      grav  = 9.806,		& ! gravity
      sss = 34.7,		& ! sea surface salinity
-     penetr = 9.,		& ! shortwave penetration depth (m)
+     penetr = 6.,		& ! shortwave penetration depth (m)
      grnblu
    integer,parameter :: itmax = 5		! regula falsi iterations
    real :: rnl_ts, hs_ts, rf_ts, alpha, beta, rch, ustar,		&
@@ -162,7 +162,8 @@ module skinsst
 ! --- piston velocity: at 0 m/s, molecular diffusion only.
 ! ---                  at 8 m/s, destroy warm layer during 600 sec time step
 ! ---                  based on 1 m thickness scale.
-   piston(vel)= 1.4e-7 + 1.66667e-3*(vel/8.)**2
+!  piston(vel)= 1.4e-7 + 1.66667e-3*(vel/8.)**2		! quadratic interpolation
+   piston(vel)= 1.4e-7 + 1.66667e-3*(vel/8.)		! linear interpolation
 
    if (iter.gt.1) return
 
@@ -223,11 +224,12 @@ module skinsst
          'excessively cold tskin at lon,lat',alon,alat,tskin(i)-frz
 
      if (sfcnsw(i).lt.3.) then			! 3 W/m^2 cutoff
+!    if (1.gt.0) then				! disable warm layer
       dt_warm(i)=0.
       tskin(i)=tsfco(i)
      else			! SW flux > 0
       dt_warm(i) = sfcnsw(i) * timestep 				&
-         / (2. * penetr * grnblu(alat) * rho_wat * spcifh)
+         * 2./(penetr * grnblu(alat) * rho_wat * spcifh)
 ! --- note: dt_warm is cumulative.
       tskin(i) = tskin(i) + dt_warm(i)					&
 ! --- subtract old dt_cool (dt_cool is not cumulative)
@@ -236,6 +238,8 @@ module skinsst
       tskin(i) = tskin(i) + (tsfco(i)-tskin(i))				&
          * min(1.,timestep*piston(wind(i)))
      end if			! SW flux > 0
+! --- save (tskin - top layer T) for diagnostic purposes
+     dt_warm(i) = tskin(i) - tsfco(i)
 
 ! --- start cool-skin iteration, using regula falsi (aiming for x_n = y_n)
 ! --- x1,x2,x3,y1,y2,y3 are consecutive dt_cool approximations.
