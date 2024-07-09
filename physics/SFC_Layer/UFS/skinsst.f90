@@ -62,7 +62,8 @@ module skinsst
    subroutine skinsst_run(				&
     im,			& ! horiz. loop extent				in
     iter,		& ! ccpp loop counter				in
-    wet,		& ! .true. at ocean points			in
+    wet,		& ! .true. at water points			in
+    oceanfrac,		& ! .true. at ocean points			in
     timestep,		& ! model timestep				in
     xlon, xlat,		& ! longitude, latitude				in
     sfcemis,		& ! sea surface emissivity			in
@@ -115,7 +116,7 @@ module skinsst
    logical, intent(in) :: lseaspray
    real (kind=kind_phys), dimension(:), intent(in) :: xlon,xlat,	&
       sfcemis, dlwflx, sfcnsw, tsfco, wind, psfc, plyr1, tlyr1, qlyr1,	&
-      ulyr1, vlyr1, cm, ch, compres, stress, fm, fm10
+      ulyr1, vlyr1, cm, ch, compres, stress, fm, fm10, oceanfrac
    real (kind=kind_phys), intent(in) :: timestep, hvap, cp, rd, eps,	&
       sbc
 
@@ -172,7 +173,7 @@ module skinsst
 !   print '(a,2f8.2)','entering skinsst_run, testpt =',testlon,testlat
 
    do i = 1,im
-    if (wet(i)) then
+    if (wet(i) .and. oceanfrac(i) > 0.0) then
 
      alon=xlon(i)*rad2deg
      alat=xlat(i)*rad2deg
@@ -362,7 +363,7 @@ module skinsst
      hflx(i) = hflx(i)/(rho_air * cp)				! deg m/sec
      evap(i) = evap(i)/(rho_air * hvap)				! m/sec
 
-    end if		! wet
+    end if		! wet .and. oceanfrac(i) > 0.0
    end do		! im loop
 
    return
