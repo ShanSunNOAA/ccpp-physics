@@ -213,34 +213,34 @@ module skinsst
      ustar = sqrt(stress(i)/rho_air)			! air friction velocity
 
 ! --- apply warm layer correction
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-! --- we currently save tskin for next time step under the name "xzts".
+! - - - - - - - - - - - - - - - - - - - - - - - - - - -
+! --- tskin from last time step has been saved in xzts
 ! --- other unused arrays: c0,w0,wd,xs,xt,xu,xv
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     if (xzts(i).eq.0. .or. oceanfrac(i).lt.1.e-9) then	! ocnfrac=0 means lake
-      tskin(i) = tsfco(i)			! use externally provided temp
+! - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     if (xzts(i).eq.0.) then			! initial xzts assumed to be 0
+      tskin(i) = tsfco(i)
      else
       tskin(i) = xzts(i)			! tskin from previous time step
      end if
      if (tskin(i)-frz.lt.-5.) print '(a,2f8.2,es13.3)',			&
          'excessively cold tskin at lon,lat',alon,alat,tskin(i)-frz
 
-! --- at lake points we have wet=true and ocnfrac=0. lake surface temperature
-! --- (tsfco) is presently prescribed by climatology.
-
-     if (sfcnsw(i).lt.3. .or. oceanfrac(i).lt.1.e-9) then ! 3 W/m^2 cutoff
-!!    if (1.gt.0) then				! disable warm layer
-      dt_warm(i)=0.
+     if (sfcnsw(i).lt.2.) then			! 2 W/m^2 cutoff
+!!    if (1.gt.0) then				! uncomment to disable warm lyr
+      dt_warm(i)=0.				! warm layer breaks down
       tskin(i)=tsfco(i)
 !!    end if					! 1 > 0
-     else 					! SW flux > 0 and ocnfrac > 0
+     else 					! SW flux > 0
+
+! --- evaluate warmr-layer increment during current time step
+
       dt_warm(i) = sfcnsw(i) * timestep 				&
          * 2./(penetr * grnblu(alat) * rho_wat * spcifh)
 ! --- note: dt_warm is cumulative.
       tskin(i) = tskin(i) + dt_warm(i)					&
 ! --- subtract old dt_cool (dt_cool is not cumulative)
         + dt_cool(i)				! sign convention: dt_cool > 0
-! --- add cooling by heat diffusion
+! --- cooling by heat diffusion
       tskin(i) = tskin(i) + (tsfco(i)-tskin(i))				&
          * min(1.,timestep*piston(wind(i)))
      end if					! SW flux > 0 and ocnfrac > 0
@@ -308,12 +308,16 @@ module skinsst
            alon,alat,hist(loop),(hist(n),n=1,loop)
           end if
       end if
-
-      if (oceanfrac(i).lt.1.e-9) dt_cool(i) = 0.  ! no cooling a lake points
       tskin(i) = tskin(i)-dt_cool(i)	! dt_cool > 0 => cooling
      end if				! y1 nonzero
 
+! --- at lake points, identified by wet=true and ocnfrac=0, lake surface
+! --- temperature (tsfco) is presently prescribed by climatology.
+
+     if (oceanfrac(i).eq.0.) tskin(i)=tsfco(i)
+
 ! --- save tskin for next call to skinsst
+
      xzts(i) = tskin(i)
 
 ! --- according to  GFS_surface_composites_inter.F90,
@@ -582,7 +586,8 @@ end module skinsst
 !  testlon= 274.84  ; testlat= 46.00
 
 !  testlon= 272.60  ; testlat= 48.70
-   testlon= 273.39  ; testlat= 47.79
+!  testlon= 273.39  ; testlat= 47.79
+   testlon= 292.34  ; testlat= 66.86
 
 !  print '(a,2f8.2)','(get_testpt) set test point location',testlon,testlat
    return
