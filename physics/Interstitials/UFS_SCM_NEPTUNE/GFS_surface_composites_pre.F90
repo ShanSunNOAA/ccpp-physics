@@ -23,7 +23,7 @@ contains
    subroutine GFS_surface_composites_pre_run (im, lkm, frac_grid, iopt_lake, iopt_lake_clm,                               &
                                  flag_cice, cplflx, cplice, cplwav2atm, lsm, lsm_ruc,                                     &
                                  landfrac, lakefrac, lakedepth, oceanfrac, frland,                                        &
-                                 dry, icy, lake, use_lake_model, wet, hice, cice, zorlo, zorll, zorli,                    &
+                                 dry, icy, lake, use_lake_model, wet, xlon, xlat, hice, cice, zorlo, zorll, zorli,        &
                                  snowd,            snowd_lnd, snowd_ice, tprcp, tprcp_wat,                                &
                                  tprcp_lnd, tprcp_ice, uustar, uustar_wat, uustar_lnd, uustar_ice,                        &
                                  weasd,            weasd_lnd, weasd_ice, ep1d_ice, tsfc, tsfco, tsfcl, tsfc_wat,          &
@@ -39,7 +39,7 @@ contains
       logical, dimension(:),              intent(inout)  :: flag_cice
       logical,              dimension(:), intent(inout)  :: dry, icy, lake, wet
       integer, dimension(:),              intent(in   )  :: use_lake_model
-      real(kind=kind_phys), dimension(:), intent(in   )  :: landfrac, lakefrac, lakedepth, oceanfrac
+      real(kind=kind_phys), dimension(:), intent(in   )  :: landfrac, lakefrac, lakedepth, oceanfrac, xlon, xlat
       real(kind=kind_phys), dimension(:), intent(inout)  :: cice, hice
       real(kind=kind_phys), dimension(:), intent(  out)  :: frland
       real(kind=kind_phys), dimension(:), intent(in   )  :: snowd, tprcp, uustar, weasd, qss, tisfc
@@ -68,15 +68,37 @@ contains
       integer :: i
       logical :: is_clm
 
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat,	&
+                              alon, alat
+      real,parameter :: rad2deg = 57.2957795
+      logical doprint
+
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.		&
+                      abs(testlat-alat).lt.small
+
       ! Initialize CCPP error handling variables
       errmsg = ''
       errflg = 0
 
-       do i=1,im
+      call get_testpt(testlon,testlat)
+
+      do i=1,im
+
+       alon=xlon(i)*rad2deg
+       alat=xlat(i)*rad2deg
+       if (doprint(alon,alat)) then
+        print 98,'entering GFS_surface_composites_pre_run, lola=',	&
+          alon,alat,							&
+       'tsfco',tsfco(i)-frz,						&
+       'tsfc_w',tsfc_wat(i)-frz
+       end if
+ 99    format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98    format (/a,2f7.2/(4(a8,"=",es11.4)))
+
          if(use_lake_model(i) > 0) then
              wet(i) = .true.
          endif
-       enddo
+      enddo
 
       if (frac_grid) then  ! cice is ice fraction wrt water area
         do i=1,im
@@ -289,6 +311,17 @@ contains
           endif
         enddo
       endif
+
+      do i=1,im
+       alon=xlon(i)*rad2deg
+       alat=xlat(i)*rad2deg
+       if (doprint(alon,alat)) then
+        print 98,'exiting GFS_surface_composites_pre_run, lola=',	&
+          alon,alat,							&
+       'tsfco',tsfco(i)-frz,						&
+       'tsfc_w',tsfc_wat(i)-frz
+       end if
+      end do
 
 !     write(0,*)' minmax of ice snow=',minval(snowd_ice),maxval(snowd_ice)
 

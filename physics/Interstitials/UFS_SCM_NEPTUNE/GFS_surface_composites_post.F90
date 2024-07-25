@@ -31,8 +31,8 @@ contains
       cmm, cmm_wat, cmm_lnd, cmm_ice, chh, chh_wat, chh_lnd, chh_ice, gflx, gflx_wat, gflx_lnd, gflx_ice, ep1d, ep1d_wat,         &
       ep1d_lnd, ep1d_ice, weasd, weasd_lnd, weasd_ice, snowd, snowd_lnd, snowd_ice, tprcp, tprcp_wat,                             &
       tprcp_lnd, tprcp_ice, evap, evap_wat, evap_lnd, evap_ice, hflx, hflx_wat, hflx_lnd, hflx_ice, qss, qss_wat, qss_lnd,        &
-      qss_ice, tsfc, tsfco, tsfcl, tsfc_wat, tisfc, hice, cice, tiice,                                                            &
-      sigmaf, zvfun, lheatstrg, h0facu, h0facs, hflxq, hffac, stc, lkm, iopt_lake, iopt_lake_clm, use_lake_model,                                                               &
+      qss_ice, tsfc, tsfco, tsfcl, tsfc_wat, tisfc, hice, cice, tiice, xlon, xlat,                                                &
+      sigmaf, zvfun, lheatstrg, h0facu, h0facs, hflxq, hffac, stc, lkm, iopt_lake, iopt_lake_clm, use_lake_model,                 &
       grav, prsik1, prslk1, prslki, z1, ztmax_wat, ztmax_lnd, ztmax_ice, huge, errmsg, errflg)
 
       implicit none
@@ -41,7 +41,7 @@ contains
       logical,                              intent(in) :: cplflx, frac_grid, cplwav2atm, frac_ice
       logical,                              intent(in) :: lheatstrg
       logical, dimension(:),                intent(in) :: flag_cice, dry, icy
-      logical, dimension(:),                intent(in) :: wet
+      logical, dimension(:),             intent(inout) :: wet
       integer, dimension(:),                intent(in) :: islmsk, use_lake_model
       real(kind=kind_phys), dimension(:),   intent(in) :: wind, t1, q1, prsl1, landfrac, lakefrac, oceanfrac,                   &
         cd_wat, cd_lnd, cd_ice, cdq_wat, cdq_lnd, cdq_ice, rb_wat, rb_lnd, rb_ice, stress_wat,                                  &
@@ -66,7 +66,7 @@ contains
       ! Additional data needed for calling "stability"
       logical,                              intent(in   ) :: thsfc_loc
       real(kind=kind_phys),                 intent(in   ) :: grav
-      real(kind=kind_phys), dimension(:),   intent(in   ) :: prsik1, prslk1, prslki, z1
+      real(kind=kind_phys), dimension(:),   intent(in   ) :: prsik1, prslk1, prslki, z1, xlon, xlat
       real(kind=kind_phys), dimension(:),   intent(in   ) :: ztmax_wat, ztmax_lnd, ztmax_ice
 
       character(len=*), intent(out) :: errmsg
@@ -79,19 +79,39 @@ contains
       real(kind=kind_phys) :: tsurf, virtfac, tv1, thv1, tvs, z0max, ztmax
       real(kind=kind_phys) :: lnzorll, lnzorli, lnzorlo
 !
-      real(kind=kind_phys) :: tem1, tem2, gdx
+      real(kind=kind_phys) :: tem1, tem2, gdx, alon, alat
       real(kind=kind_phys), parameter :: z0lo=0.1, z0up=1.0
 !
+      real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+      real,parameter :: rad2deg = 57.2957795
+      logical doprint
+
+      doprint(alon,alat)=abs(testlon-alon).lt.small .and.		&
+                      abs(testlat-alat).lt.small
+
 
       ! Initialize CCPP error handling variables
       errmsg = ''
       errflg = 0
+
+      call get_testpt(testlon,testlat)
 
       ! --- generate ocean/land/ice composites
 
        fractional_grid: if (frac_grid) then
 
         do i=1, im
+
+          alon=xlon(i)*rad2deg
+          alat=xlat(i)*rad2deg
+          if (doprint(alon,alat)) then
+           print 98,'entering GFS_surface_composites_post_run, lola=',	&
+             alon,alat,							&
+          'tsfco',tsfco(i)-frz,						&
+          'tsfc_w',tsfc_wat(i)-frz
+          end if
+ 99       format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98       format (/a,2f7.2/(4(a8,"=",es11.4)))
 
           ! Three-way composites (fields from sfc_diff)
           txl   = landfrac(i)            ! land fraction
@@ -259,6 +279,14 @@ contains
             hice(i)  = zero
             cice(i)  = zero
           endif
+
+          if (doprint(alon,alat)) then
+           print 98,'exiting GFS_surface_composites_post_run, lola=',	&
+             alon,alat,							&
+          'tsfco',tsfco(i)-frz,						&
+          'tsfc_w',tsfc_wat(i)-frz
+          end if
+
         enddo
 
       else ! not fractional grid

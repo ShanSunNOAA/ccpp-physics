@@ -5,7 +5,7 @@ module sfc_nst_pre
 
   use machine               , only : kind_phys
   use module_nst_water_prop , only : get_dtzm_2d
-  use module_nst_parameters , only : zero, one
+  use module_nst_parameters , only : zero, one, rad2deg
 
   implicit none
 
@@ -24,13 +24,13 @@ contains
   subroutine sfc_nst_pre_run                      &
        (im, wet, tgice, tsfco, tsurf_wat,         &
        tseal, xt, xz, dt_cool, z_c, tref, cplflx, &
-       oceanfrac, nthreads, errmsg, errflg)
+       xlon, xlat, oceanfrac, nthreads, errmsg, errflg)
 
     !  ---  inputs:
     integer, intent(in) :: im, nthreads
     logical, dimension(:), intent(in) :: wet
     real (kind=kind_phys), intent(in) :: tgice
-    real (kind=kind_phys), dimension(:), intent(in) :: tsfco, oceanfrac
+    real (kind=kind_phys), dimension(:), intent(in) :: tsfco, oceanfrac, xlat, xlon
     real (kind=kind_phys), dimension(:), intent(in), optional :: xt, xz, dt_cool, z_c
     logical, intent(in) :: cplflx
 
@@ -45,8 +45,15 @@ contains
     !  ---  locals
     integer :: i
     real(kind=kind_phys), parameter :: omz1 = 2.0_kind_phys
-    real(kind=kind_phys) :: tem2, dnsst
+    real(kind=kind_phys) :: tem2, dnsst, alon, alat
     real(kind=kind_phys), dimension(im) :: dtzm, z_c_0
+
+    logical :: doprint
+    real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
+    doprint(alon,alat)=abs(testlon-alon).lt.small .and.                 &
+                       abs(testlat-alat).lt.small
+
+    call get_testpt(testlon,testlat)
 
     ! Initialize CCPP error handling variables
     errmsg = ''
@@ -85,6 +92,20 @@ contains
           endif
        enddo
     endif
+
+    do i=1,im
+      alon=xlon(i)*rad2deg
+      alat=xlat(i)*rad2deg
+      if (doprint(alon,alat))					&
+       print 99,'exiting sfc_nst_pre   lon,lat=',alon,alat,	&
+       'ocnfrac',oceanfrac(i),			&
+       'tsfco',tsfco(i)-frz,			&
+       'tseal',tseal(i)-frz,			&
+       'tref',tref(i)-frz,			&
+       'tsurf_w',tsurf_wat(i)-frz
+ 99  format (/a,2f7.2/(5(a8,"=",f7.2)))
+ 98  format (/a,2f7.2/(4(a8,"=",es11.4)))
+    enddo
 
     return
   end subroutine sfc_nst_pre_run
