@@ -28,8 +28,8 @@ contains
        ( im, hvap, cp, hfus, jcal, eps, epsm1, rvrdm1, rd, rhw0,  &  ! --- inputs:
        pi, tgice, sbc, ps, u1, v1, usfco, vsfco, icplocn2atm, t1, &
        q1, tref, cm, ch, lseaspray, fm, fm10,                     &
-       prsl1, prslki, prsik1, prslk1, wet, use_lake_model, xlon,  &
-       xlat, sinlat, stress,                                      &
+       prsl1, prslki, prsik1, prslk1, wet, oceanfrac,             &
+       use_lake_model, xlon, sinlat, stress,                      &
        sfcemis, dlwflx, sfcnsw, rain, timestep, kdt, solhr,xcosz, &
        wind, flag_iter, flag_guess, nstf_name1, nstf_name4,       &
        nstf_name5, lprnt, ipr, thsfc_loc,                         &
@@ -51,7 +51,7 @@ contains
     !            prsl1, prslki, wet, use_lake_model, xlon, sinlat, stress,  !
     !            sfcemis, dlwflx, sfcnsw, rain, timestep, kdt,solhr,xcosz,  !
     !            wind,  flag_iter, flag_guess, nstf_name1, nstf_name4,      !
-    !            nstf_name5, lprnt, ipr, thsfc_loc, xlat                    !
+    !            nstf_name5, lprnt, ipr, thsfc_loc,                         !
     !       input/outputs:                                                  !
     !            tskin, tsurf, xt, xs, xu, xv, xz, zm, xtts, xzts, dt_cool, !
     !            z_c, c_0,   c_d,   w_0, w_d, d_conv, ifd, qrain,           !
@@ -104,7 +104,6 @@ contains
     !     use_lake_model- logical, =T if flake model is used for lake  im   !
     !     icy      - logical, =T if any ice                            im   !
     !     xlon     - real, longitude         (radians)                 im   !
-    !     xlat     - real, latitude         (radians)                 im   !
     !     sinlat   - real, sin of latitude                             im   !
     !     stress   - real, wind stress       (n/m**2)                  im   !
     !     sfcemis  - real, sfc lw emissivity (fraction)                im   !
@@ -176,8 +175,8 @@ contains
     real (kind=kind_phys), intent(in) :: hvap, cp, hfus, jcal, eps, &
          epsm1, rvrdm1, rd, rhw0, sbc, pi, tgice
     real (kind=kind_phys), dimension(:), intent(in) :: ps, u1, v1,  &
-         usfco, vsfco, t1, q1, cm, ch, fm, fm10,                    &
-         prsl1, prslki, prsik1, prslk1, xlon, xlat,xcosz,           &
+         usfco, vsfco, t1, q1, cm, ch, fm, fm10, oceanfrac,         &
+         prsl1, prslki, prsik1, prslk1, xlon, xcosz,                &
          sinlat, stress, sfcemis, dlwflx, sfcnsw, rain, wind
     real (kind=kind_phys), dimension(:), intent(in), optional ::    &
          tref
@@ -231,9 +230,9 @@ contains
     real(kind=kind_phys) :: le,fc,dwat,dtmp,wetc,alfac,ustar_a,rich
     real(kind=kind_phys) :: rnl_ts,hs_ts,hl_ts,rf_ts,q_ts
     real(kind=kind_phys) :: fw,q_warm
-    real(kind=kind_phys) :: t12,alon,alat,tsea,sstc,dta,dtz
+    real(kind=kind_phys) :: t12,alon,tsea,sstc,dta,dtz
     real(kind=kind_phys) :: zsea1,zsea2,soltim
-    logical :: do_nst, doprint
+    logical :: do_nst
     !
     !  parameters for sea spray effect
     !
@@ -246,16 +245,8 @@ contains
     real (kind=kind_phys), parameter :: alps=0.75,bets=0.75,gams=0.15, &
          ws10cr=30., conlf=7.2e-9, consf=6.4e-8
     real (kind=kind_phys) :: windrel
-
-    real(kind=kind_phys) :: frz=273.15, small=.05, testlon, testlat
-    doprint(alon,alat)=abs(testlon-alon).lt.small .and.			&
-                       abs(testlat-alat).lt.small
     !
     !======================================================================================================
-    call get_testpt(testlon,testlat)
-! --- temporary
-!   print '(a,2f8.2)','entering sfc_nst_run, testpt =',testlon,testlat
-
     ! Initialize CCPP error handling variables
     errmsg = ''
     errflg = 0
@@ -273,34 +264,9 @@ contains
     do_nst = .false.
     do i = 1, im
 !   flag(i) = wet(i) .and. .not.icy(i) .and. flag_iter(i)
-    flag(i) = wet(i) .and. flag_iter(i) .and. use_lake_model(i)/=1
+    flag(i) = wet(i) .and. flag_iter(i) .and. use_lake_model(i)/=1      &
+              .and. oceanfrac(i)==0.
     do_nst  = do_nst .or. flag(i)
-
-     alon=xlon(i)*rad2deg
-     alat=xlat(i)*rad2deg
-     if (doprint(alon,alat)) then
-      print 99,'entering sfc_nst_run   lon,lat=',alon,alat,	&
-      'xt',xt(i),			&
-      'xs',xs(i),			&
-      'xu',xu(i),			&
-      'xv',xv(i),			&
-      'xz',xz(i),			&
-      'xtts',xtts(i),			&
-      'xzts',xzts(i),			&
-      'wind',wind(i),			& ! wind speed
-      'prsl11',prsl1(i)*.01,		& ! atmo layer 1 presure (mb)
-      't1',t1(i)-frz,			& ! atmo layer 1 air temp
-      'q1',q1(i)*1.e3,			& ! atmo layer 1 humidity (g/kg)
-      'tskin',tskin(i)-frz,		& ! ocean skin temperature
-      'dtcool',dt_cool(i),		& ! cool-skin correction
-      'tref',tref(i)-frz
-      print '(5(a13,"=",l2))',		&
-      'flag_iter',flag_iter(i),		&
-      'flag_guess',flag_guess(i),	&
-      'flag',flag(i)
-     end if
- 99  format (/a,2f7.2/(5(a8,"=",f7.2)))
- 98  format (/a,2f7.2/(4(a8,"=",es11.4)))
 
     enddo
     if (.not. do_nst) return
@@ -309,7 +275,8 @@ contains
     !
     do i=1, im
        !       if(wet(i) .and. .not.icy(i) .and. flag_guess(i)) then
-       if(wet(i) .and. flag_guess(i) .and. use_lake_model(i)/=1) then
+       if(wet(i) .and. flag_guess(i) .and. use_lake_model(i)/=1 .and.   & 
+          oceanfrac(i)==0.) then
           xt_old(i)      = xt(i)
           xs_old(i)      = xs(i)
           xu_old(i)      = xu(i)
@@ -626,7 +593,8 @@ contains
     ! restore nst-related prognostic fields for guess run
     do i=1, im
        !       if (wet(i) .and. .not.icy(i)) then
-       if (wet(i) .and. use_lake_model(i)/=1) then
+       if (wet(i) .and. use_lake_model(i)/=1 .and. oceanfrac(i)==0.)    &
+                                                                    then
           if (flag_guess(i)) then    ! when it is guess of
              xt(i)      = xt_old(i)
              xs(i)      = xs_old(i)
@@ -702,18 +670,6 @@ contains
     enddo
     !
     do i=1,im
-
-      alon=xlon(i)*rad2deg
-      alat=xlat(i)*rad2deg
-      if (doprint(alon,alat))					&
-        print 99,'exiting sfc_nst_run   lon,lat=',alon,alat,	&
-        'evap',evap(i),			&
-        'hflx',hflx(i),			&
-        'tsurf',tsurf(i)-frz,		&
-        'tskin',tskin(i)-frz,		&
-        'xt',xt(i),			&
-        'xz',xz(i)
-
        if ( flag(i) ) then
           tem     = one / rho_a(i)
           hflx(i) = hflx(i) * tem * cpinv
