@@ -29,7 +29,7 @@ contains
        pi, tgice, sbc, ps, u1, v1, usfco, vsfco, icplocn2atm, t1, &
        q1, tref, cm, ch, lseaspray, fm, fm10,                     &
        prsl1, prslki, prsik1, prslk1, wet, use_lake_model, xlon,  &
-       sinlat, stress,                                            &
+       sinlat, stress, oceanfrac,                                 &
        sfcemis, dlwflx, sfcnsw, rain, timestep, kdt, solhr,xcosz, &
        wind, flag_iter, flag_guess, nstf_name1, nstf_name4,       &
        nstf_name5, lprnt, ipr, thsfc_loc,                         &
@@ -175,7 +175,7 @@ contains
     real (kind=kind_phys), intent(in) :: hvap, cp, hfus, jcal, eps, &
          epsm1, rvrdm1, rd, rhw0, sbc, pi, tgice
     real (kind=kind_phys), dimension(:), intent(in) :: ps, u1, v1,  &
-         usfco, vsfco, t1, q1, cm, ch, fm, fm10,                    &
+         usfco, vsfco, t1, q1, cm, ch, fm, fm10, oceanfrac,         &
          prsl1, prslki, prsik1, prslk1, xlon, xcosz,                &
          sinlat, stress, sfcemis, dlwflx, sfcnsw, rain, wind
     real (kind=kind_phys), dimension(:), intent(in), optional ::    &
@@ -264,7 +264,8 @@ contains
     do_nst = .false.
     do i = 1, im
        !       flag(i) = wet(i) .and. .not.icy(i) .and. flag_iter(i)
-       flag(i) = wet(i) .and. flag_iter(i) .and. use_lake_model(i)/=1
+       flag(i) = wet(i) .and. flag_iter(i) .and. use_lake_model(i)/=1   &
+                 .and. oceanfrac(i)==0.
        do_nst  = do_nst .or. flag(i)
     enddo
     if (.not. do_nst) return
@@ -273,7 +274,8 @@ contains
     !
     do i=1, im
        !       if(wet(i) .and. .not.icy(i) .and. flag_guess(i)) then
-       if(wet(i) .and. flag_guess(i) .and. use_lake_model(i)/=1) then
+       if(wet(i) .and. flag_guess(i) .and. use_lake_model(i)/=1 .and.   & 
+          oceanfrac(i)==0.) then
           xt_old(i)      = xt(i)
           xs_old(i)      = xs(i)
           xu_old(i)      = xu(i)
@@ -590,7 +592,8 @@ contains
     ! restore nst-related prognostic fields for guess run
     do i=1, im
        !       if (wet(i) .and. .not.icy(i)) then
-       if (wet(i) .and. use_lake_model(i)/=1) then
+       if (wet(i) .and. use_lake_model(i)/=1 .and. oceanfrac(i)==0.)    &
+                                                                    then
           if (flag_guess(i)) then    ! when it is guess of
              xt(i)      = xt_old(i)
              xs(i)      = xs_old(i)
