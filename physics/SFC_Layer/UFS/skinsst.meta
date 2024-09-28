@@ -125,10 +125,28 @@
   type = real
   kind = kind_phys
   intent = in
+[tref]
+  standard_name = reference_sea_surface_temperature
+  long_name = reference/foundation temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = in
+  optional = True
 [xzts]
   standard_name = derivative_of_diurnal_thermocline_layer_thickness_wrt_surface_skin_temperature
   long_name = d(xz)/d(ts)
   units = m K-1
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
+  optional = True
+[xs]
+  standard_name = sea_water_salinity_in_diurnal_thermocline
+  long_name = salinity  content in diurnal thermocline layer
+  units = ppt m
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
