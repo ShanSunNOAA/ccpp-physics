@@ -208,10 +208,14 @@ module skinsst
      alon=xlon(i)*rad2deg
      alat=xlat(i)*rad2deg
 
-! --- temporary:
-!    if (xzts(i).eq.0.)							&
-!     print '(a,3f8.3,l5)','now at lon,lat',alon,alat,			&
-!     oceanfrac(i),doprint(alon,alat)
+! --- temporary: create list of lake and ocean points
+!    if (xzts(i).eq.0.)then		! use xzts=0 as indicator for t=0
+!     if (oceanfrac(i).eq.0.) then
+!      print '(a,2f8.2,a)','lon,lat',alon,alat,' is lake point'
+!     else
+!      print '(a,2f8.2,a)','lon,lat',alon,alat,' is ocean point'
+!     end if
+!    end if
 
      if (doprint(alon,alat)) then
       print 97,'entering skinsst_run   lon,lat=',alon,alat,		&
@@ -239,7 +243,7 @@ module skinsst
 !     'tref',tref(i)-frz,		& ! foundation temp
       'tsfco',tsfco(i)-frz		  ! ocean top layer temperature
       print '(5(a13,"=",l2))','lseaspray',lseaspray
-!     if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is lake point'
+      if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is lake point'
      end if
  99  format (/a,2f7.2/(5(a8,"=",f7.2)))
  98  format (/a,2f7.2/(4(a8,"=",es11.4)))
@@ -278,7 +282,6 @@ module skinsst
 
 !     details = doprint(alon,alat)
       details = .false.
-
 
      if (oceanfrac(i).gt.0.) then
 
@@ -346,7 +349,7 @@ module skinsst
 
         x3 = (x1*dif2-x2*dif1)/(dif2-dif1)		! regula falsi
 
-        if (abs(dif2).gt.1.e-5) then
+        if (abs(dif2).gt.1.e-4) then
 
          if (abs(dif1).gt.abs(dif2)) then
           x1 = x2
@@ -382,7 +385,9 @@ module skinsst
 
 ! --- use rudimentary energy loan lake model 'enloan'.
 ! --- arguments: time step, air-sea heat flux, ice thickness ('xz'),
-! --- water temp ('xt'),ice sfc.temp ('tskin')
+! --- water temp ('xt'),ice sfc.temp ('tskin').
+! --- variable names are inherited from NSST and should be changed for readability
+
        totflx = sfcnsw(i) - nonsol	! pos.down
 
 ! --- average totflx over 2 time steps to suppress comput.mode in enloan
@@ -396,9 +401,7 @@ module skinsst
        tsfco(i) = xt(i)
        if (xz(i).gt.0.) evap(i) = 0.
         
-        
       end if
-
      end if				! oceanfrac zero or nonzero
 
 ! --- save tskin for next call to skinsst
@@ -450,7 +453,6 @@ module skinsst
       'dcoolE2',dt_cool(i)*100.,	& ! cool-skin temperature correction
       'tskin',tskin(i)-frz,		& ! skin temperature
       'tsfco',tsfco(i)-frz 		  ! ocean top layer temperature
-      if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is lake point'
      end if
 
 ! --- convert fluxes from W/m^2 to "kinematic" i.e. velocity x fluxed variable
@@ -661,10 +663,9 @@ module skinsst
 ! --- wintertime cooling below freezing level. 'loan' is paid back in summer.
 
    implicit none
-
    real,parameter :: frz=273.15
    logical,intent(IN) :: doprint
-   real,   intent(IN) :: delt,alon,alat		! time step
+   real,   intent(IN) :: delt,alon,alat		! time step, test point loc'n
    real,intent(INOUT) ::		&
    surflx,	& ! net total heat flux between atm and ice (W/m^2)
    thkice,	& ! grid-box averaged ice thickness (m)
@@ -680,8 +681,11 @@ module skinsst
    kice=2.04,		& ! heat conductivity in ice (W/m/deg)
    fusion=334.e3,	& ! latent heat of fusion (J/kg)
    rate=.2/3600.,	& ! max. ice melting rate (m/sec)
-   fluctn=3./3600,	& ! limit on temice fluctuation (deg/sec)
+!  fluctn=3./3600,	& ! limit on temice fluctuation (deg/sec)
+   fluctn=2./3600,	& ! limit on temice fluctuation (deg/sec)
    spcifh=4190.,	& ! specific heat of water (J/kg/deg)
+!  dpth=20.		  ! nominal mixed layer depth (m)
+!  dpth=30.		  ! nominal mixed layer depth (m)
    dpth=40.		  ! nominal mixed layer depth (m)
    real :: tnew,borrow,paybak,avail
 
@@ -814,11 +818,11 @@ end module skinsst
 !  testlon= 273.39  ; testlat= 47.79	! lake superior
 !  testlon= 271.92  ; testlat= 47.15	! lake superior
 !  testlon= 292.34  ; testlat= 66.86
-!  testlon= 245.31  ; testlat= 61.72	! great slave lake
+   testlon= 245.31  ; testlat= 61.72	! great slave lake
 !  testlon=  60.28  ; testlat= 67.99
 
 !  testlon= 107.04  ; testlat= 53.05 	! lake baikal
-!  testlon=  73.20  ; testlat=  69.0	! ob river
+!  testlon=  73.20  ; testlat= 69.03	! ob river
 !  testlon=  73.53  ; testlat= 68.07	! ob river
 
 !  print '(a,2f8.2)','(get_testpt) set test point location',testlon,testlat
