@@ -60,7 +60,6 @@ module skinsst
 !!
 
    subroutine skinsst_run(					&
-!   c_0, c_d, w_0, w_d, d_conv, ifd,				&
     im,			& ! horiz. loop extent				in
     iter,		& ! ccpp loop counter				in
     wet,		& ! .true. at ocean & lake points		in
@@ -90,13 +89,13 @@ module skinsst
     eps,		& ! ratio of gas constants, rd/rv		in
     sbc,		& ! stefan-boltzmann constant			in
     tskin,		& ! skin temp					inout
-    xzts,		& ! holding place for tskin			inout
-    xt,			& ! lake mixed layer temperature		inout
-    xv,			& ! seawifs extinction coefficient		inout
-    xz,			& ! lake ice thickness				inout
-    xs,			& ! not used, held in reserve			inout
-    xu,			& ! previous lake ice surf. temp		inout
-    zm,			& ! previous lake sfc heat flux			inout
+    xzts,		& ! repurposed: previous tskin			inout
+    xt,			& ! repurposed: lake mixed layer temperature	inout
+    xv,			& ! repurposed: extinction coefficient		inout
+    xz,			& ! repurposed: lake ice thickness		inout
+    xu,			& ! repurposed: previous lake ice surf. temp	inout
+    zm,			& ! repurposed: previous lake sfc heat flux	inout
+    xs,			& ! repurposed: not used, held in reserve	inout
     qsat,		& ! saturation specif. humidity			out
     z_c,		& ! sub-layer cooling thickness			out
     dt_warm,		& ! warm-layer surface warming amount		out
@@ -111,6 +110,7 @@ module skinsst
     fm10,		& ! Monin-Obukhov function at 10m		in
     errmsg, errflg)
 
+   
    use machine , only : kind_phys
    use state_eqn
    use funcphys, only : fpvs		! vapor pressure
@@ -128,10 +128,16 @@ module skinsst
       sbc
 
 ! --- inout:
-   real (kind=kind_phys), dimension(:), intent(inout) :: ulwflx,	&
-      tsfco, tskin, dt_cool, xzts, xs, xt, xu, xv, xz, zm
-!     c_0, c_d, w_0, w_d, d_conv, ifd
-!     temice, thkice
+   real (kind=kind_phys), dimension(:), intent(inout), target ::	&
+       ulwflx, tsfco, tskin, dt_cool, xzts, xs, xt, xu, xv, xz, zm
+
+   real, dimension(:), pointer :: 			&
+   skinold,		& ! previous skin temp				inout
+   temwat,		& ! lake mixed layer temperature		inout
+   xtinct,		& ! extinction coefficient			inout
+   thkice,		& ! lake ice thickness				inout
+   ticold,		& ! previous lake ice surf. temp		inout
+   flxold		  ! previous lake sfc heat flux			inout
 
 ! --- output:
    real (kind=kind_phys), dimension(:), intent(out) :: evap, hflx,	&
@@ -157,9 +163,9 @@ module skinsst
                             ws10cr=30., conlf=7.2e-9, consf=6.4e-8
 
    logical :: doprint, details, frstrip
-   real(kind=kind_phys) :: xtinct, frz=273.15, small=.05, totflx,	&
+   real(kind=kind_phys) :: seawifs, frz=273.15, small=.05, totflx,	&
       oldflx, testlon, testlat
-   external xtinct
+   external seawifs
    real,parameter :: rad2deg = 57.2957795
    doprint(alon,alat)=abs(testlon-alon).lt.small .and.			&
                       abs(testlat-alat).lt.small
@@ -174,14 +180,25 @@ module skinsst
 
    call get_testpt(testlon,testlat)
 ! --- temporary:
-!  print '(a,2f8.2,l5)','entering skinsst_run, testpt =',testlon,testlaa
+!  print '(a,2f8.2,l5)','entering skinsst_run, testpt =',testlon,testlat
+
+! --- point to unused arrays inherited from nsst.
+! --- IMPORTANT: these arrays must remain untouched between calls to skinsst.
+! --- we keep nsst array names to simplify switching between nsst and skinsst.
+
+   skinold	=> xzts
+   temwat	=> xt
+   xtinct	=> xv
+   thkice	=> xz
+   ticold	=> xu
+   flxold	=> zm
 
    do i = 1,im
 
     details=.false.
 
 ! --- check which arrays inherited from NSST are touched outside skinsst.
-!    if (xzts(i).ne.-.03125) details=.true.
+!  if (xzts(i).ne.-.03125) details=.true.
      if (xs(i).ne.-.03125) details=.true.
 !    if (xt(i).ne.-.03125) details=.true.
 !    if (xu(i).ne.-.03125) details=.true.
@@ -194,14 +211,13 @@ module skinsst
 !   if (w_d(i).ne.-.03125) details=.true.
 !if (d_conv(i).ne.-.03125) details=.true.
 !   if (ifd(i).ne.-.03125) details=.true.
-!   if (details) then
-!    alon=xlon(i)*rad2deg
-!    alat=xlat(i)*rad2deg
-!    if (doprint(alon,alat))						&
-!    print '(a,2f8.2/13f6.3)','problem at lon,lat=',alon,alat,		& 
-!     xzts(i), xs(i), xt(i), xu(i), xv(i), xz(i), zm(i), c_0(i),	&
-!     c_d(i), w_0(i), w_d(i), d_conv(i), ifd(i)
-!   end if
+    if (details) then
+     alon=xlon(i)*rad2deg
+     alat=xlat(i)*rad2deg
+     if (doprint(alon,alat))						&
+     print '(a,2f8.2/13f6.3)','error: arrays overwritten at lon,lat=',	&
+       alon,alat,xs(i)
+    end if
 
     if (wet(i)) then
 
@@ -209,7 +225,7 @@ module skinsst
      alat=xlat(i)*rad2deg
 
 ! --- temporary: create list of lake and ocean points
-!    if (xzts(i).eq.0.)then		! use xzts=0 as indicator for t=0
+!    if (skinold(i).eq.0.)then		! use skinold=0 as indicator for t=0
 !     if (oceanfrac(i).eq.0.) then
 !      print '(a,2f8.2,a)','lon,lat',alon,alat,' is lake point'
 !     else
@@ -219,11 +235,9 @@ module skinsst
 
      if (doprint(alon,alat)) then
       print 97,'entering skinsst_run   lon,lat=',alon,alat,		&
-!     'xs',xs(i),'xz',xz(i),'c_0',c_0(i),'c_d',c_d(i),			&
-!     'w_0',w_0(i),'w_d',w_d(i),'d_conv',d_conv(i),'ifd',ifd(i),	&
-!     'temwat',xt(i)-frz,		& ! lake water temperature
-      'xtinct',xv(i),			& ! extinction coefficient
-!     'thkice',xz(i),			& ! lake ice thickness
+      'temwat',temwat(i)-frz,		& ! lake water temperature
+      'xtinct',xtinct(i),		& ! extinction coefficient
+      'thkice',thkice(i),		& ! lake ice thickness
       'ocnfrac',oceanfrac(i),		& ! ocean fraction
       'stress',stress(i),		& ! wind stress (N/m^2)
 !     'sfcemis',sfcemis(i),		& ! sfc emissivity
@@ -238,46 +252,46 @@ module skinsst
       'qlyr1',qlyr1(i)*1.e3,		& ! atm.layer 1 humidity (g/kg)
 !     'sigma_t',sig(tlyr1(i)-frz,sss),	& ! sea water density - 1000
 !     'compres',compres(i),		& ! midlyr-to-sfc adiab.compression
-      'xzts',xzts(i)-frz,		& ! previous tskin
+      'skinold',skinold(i)-frz,		& ! previous tskin
       'dcoolE2',dt_cool(i)*100.,	& ! previous dtcool
 !     'tref',tref(i)-frz,		& ! foundation temp
       'tsfco',tsfco(i)-frz		  ! ocean top layer temperature
       print '(5(a13,"=",l2))','lseaspray',lseaspray
-      if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is lake point'
+      if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is -lake- point'
      end if
  99  format (/a,2f7.2/(5(a8,"=",f7.2)))
  98  format (/a,2f7.2/(4(a8,"=",es11.4)))
  97  format (/a,2f7.2/(4(a8,"=",f11.6)))
 
-     if (xzts(i).ne.0.) then
-      if (xzts (i)-frz.lt.-40. .or. xzts (i)-frz.gt.40.)		&
-       print '(a,4f8.2)','questionable xzts at',alon,alat,		&
-       xzts (i)-frz,oceanfrac(i)
+     if (skinold(i).ne.0.) then
+      if (skinold(i)-frz.lt.-40. .or. skinold(i)-frz.gt.40.)		&
+       print '(a,4f8.2)','questionable skinold at',alon,alat,		&
+       skinold (i)-frz,oceanfrac(i)
      end if
 
      virt = tlyr1(i) * (1. + (eps-1.)*qlyr1(i))
      rho_air = plyr1(i) / (rd*virt)
-     rch = rho_air * cp * ch(i) * wind(i)		! W/m^2/deg
+     rch = rho_air * cp * ch(i) * wind(i)	! W/m^2/deg
      cmm(i) = cm(i) * wind(i)
      chh(i) = rho_air * ch(i) * wind(i)
      ep(i) = 0.
      rho_wat = 1000. + sig(tsfco(i)-frz,sss)
      alpha = -dsigdt(tsfco(i)-frz,sss)/rho_wat
      beta  =  dsigds(tsfco(i)-frz,sss)/rho_wat
-     ustar = sqrt(stress(i)/rho_air)			! air friction velocity
+     ustar = sqrt(stress(i)/rho_air)		! air friction velocity
 
-     if (xzts(i).eq.0.) then		! use xzts=0 as indicator for t=0
+     if (skinold(i).eq.0.) then		! use skinold=0 as indicator for t=0
       frstrip = .true.
       dt_cool(i) = 0.
-      tskin(i) = tsfco(i)
-      xt(i) = tsfco(i)			! lake ftemp
-      xu(i) = tsfco(i)			! previous lake ftemp
-      xv(i) = xtinct(alon,alat)		! seawifs extinction coeffient
-      xz(i) = 0.			! lake ice thickness
-      zm(i) = 0.			! old heat flux
+      tskin(i)  = tsfco(i)
+      temwat(i) = tsfco(i)			! lake temp
+      ticold(i) = tsfco(i)			! previous lake temp
+      xtinct(i)  = seawifs(alon,alat)		! seawifs extinction coeff.
+      thkice(i) = 0.				! lake ice thickness
+      flxold(i) = 0.				! old heat flux over lake
      else
       frstrip = .false.
-      tskin(i) = xzts(i)			! tskin from previous time step
+      tskin(i) = skinold(i)			! previous tskin
      end if
 
 !     details = doprint(alon,alat)
@@ -287,8 +301,8 @@ module skinsst
 
 ! --- apply warm layer correction
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-! --- tskin from last time step has been saved in xzts
-! --- lake variables (water temp, thickness) are saved in xt,xz
+! --- tskin from last time step has been saved in skinold
+! --- lake variables (water temp, thickness) are saved in temwat,thkice
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
       if (tskin(i)-frz.lt.-25.)						&
@@ -302,7 +316,7 @@ module skinsst
 
 ! --- evaluate warm-layer increment during current time step
 
-       dt_warm(i) = sfcnsw(i) * timestep * xv(i)/(rho_wat * spcifh)
+       dt_warm(i) = sfcnsw(i) * timestep * xtinct(i)/(rho_wat * spcifh)
 ! --- note: dt_warm is cumulative.
        tskin(i) = tskin(i) + dt_warm(i)					&
 ! --- subtract previous   dt_cool (since dt_cool is not cumulative)
@@ -384,29 +398,26 @@ module skinsst
       if (.not.frstrip) then		! skip on 1st time step
 
 ! --- use rudimentary energy loan lake model 'enloan'.
-! --- arguments: time step, air-sea heat flux, ice thickness ('xz'),
-! --- water temp ('xt'),ice sfc.temp ('tskin').
-! --- variable names are inherited from NSST and should be changed for readability
 
        totflx = sfcnsw(i) - nonsol	! pos.down
 
 ! --- average totflx over 2 time steps to suppress comput.mode in enloan
-       oldflx = zm(i)
-       zm(i) = totflx
-       totflx = .5*(totflx +oldflx)
+       oldflx = flxold(i)
+       flxold(i) = totflx
+       totflx = .5*(totflx + oldflx)
 
-       call enloan(timestep, totflx, xz(i), tskin(i), xu(i), xt(i),	 	&
-         alon, alat, doprint(alon,alat))
+       call enloan(timestep, totflx, thkice(i), tskin(i), ticold(i),	&
+                   temwat(i), alon, alat, doprint(alon,alat))
 
-       tsfco(i) = xt(i)
-       if (xz(i).gt.0.) evap(i) = 0.
+       tsfco(i) = temwat(i)
+       if (thkice(i).gt.0.) evap(i) = 0.
         
       end if
      end if				! oceanfrac zero or nonzero
 
 ! --- save tskin for next call to skinsst
 
-     xzts(i) = tskin(i)			! for use at next time step
+     skinold(i) = tskin(i)			! for use at next time step
 
 ! --- according to  GFS_surface_composites_inter.F90,
 ! --- dlwflx is the absorbed portion of downwelling LW flux.
@@ -462,7 +473,7 @@ module skinsst
     end if				! wet
 
 ! --- check which arrays inherited from NSST are touched outside skinsst.
-!    xzts(i) = -.03125
+!  xzts(i) = -.03125
      xs(i) = -.03125
 !    xt(i) = -.03125
 !    xu(i) = -.03125
@@ -818,7 +829,7 @@ end module skinsst
 !  testlon= 273.39  ; testlat= 47.79	! lake superior
 !  testlon= 271.92  ; testlat= 47.15	! lake superior
 !  testlon= 292.34  ; testlat= 66.86
-   testlon= 245.31  ; testlat= 61.72	! great slave lake
+!  testlon= 245.31  ; testlat= 61.72	! great slave lake
 !  testlon=  60.28  ; testlat= 67.99
 
 !  testlon= 107.04  ; testlat= 53.05 	! lake baikal
@@ -831,7 +842,7 @@ end module skinsst
    end subroutine get_testpt
 
 
-   real function xtinct(deglon,deglat)
+   real function seawifs(deglon,deglat)
 
 ! --- extinction coefficient (x 10) from SeaWIFS at 5x5 deg resolution
 
@@ -925,18 +936,18 @@ end module skinsst
    x=alon-i
    y=alat-j
    if (x.lt.0. .or. x.gt.1. .or. y.lt.0. .or. y.gt.1.) then
-    print '(a,4f8.2,4i5)','(xtinct) error: x or y out of range',	&
+    print '(a,4f8.2,4i5)','(seawifs) error: x or y out of range',	&
      alon,alat,x,y,i,j,ib,jb
     stop
    end if
-   xtinct=((excoef(i ,j )*(1.-x) + excoef(ib,j )*x)*(1.-y)		&
-          +(excoef(i ,jb)*(1.-x) + excoef(ib,jb)*x)*y)
+   seawifs=((excoef(i ,j )*(1.-x) + excoef(ib,j )*x)*(1.-y)		&
+           +(excoef(i ,jb)*(1.-x) + excoef(ib,jb)*x)*y)
 
-   if (xtinct.lt.9.) 							&
-   print '(a,5f8.2/8x,2i4,4f8.2)','xtinct error:',deglon,deglat,xtinct,	&
-     excoef(ib,j),excoef(ib,jb),i,j,x,y,excoef(i,j),excoef(i,jb)
+   if (seawifs.lt.9.) 							&
+   print '(a,5f8.2/8x,2i4,4f8.2)','seawifs error:',deglon,deglat,	&
+    seawifs,excoef(ib,j),excoef(ib,jb),i,j,x,y,excoef(i,j),excoef(i,jb)
 
-   xtinct = xtinct * 0.1
+   seawifs = seawifs * 0.1
    return
-   end function xtinct
+   end function seawifs
 
