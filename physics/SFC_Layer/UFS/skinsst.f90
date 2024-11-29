@@ -71,7 +71,6 @@ module skinsst
     dlwflx,		& ! absorbed downwelling LW flux		in
     sfcnsw,		& ! net SW flux, pos.down			in
     tsfco,		& ! ocean/lake top layer temperature		inout
-    tref,		& ! foundation temperature			in
     psfc,		& ! surface pressure				in
     wind,	 	& ! atm. mid-layer 1 wind			in
     stress,		& ! wind stress (N/m^2)				in
@@ -89,13 +88,12 @@ module skinsst
     eps,		& ! ratio of gas constants, rd/rv		in
     sbc,		& ! stefan-boltzmann constant			in
     tskin,		& ! skin temp					inout
-    xzts,		& ! repurposed: previous tskin			inout
-    xt,			& ! repurposed: lake mixed layer temperature	inout
-    xv,			& ! repurposed: extinction coefficient		inout
-    xz,			& ! repurposed: lake ice thickness		inout
-    xu,			& ! repurposed: previous lake ice surf. temp	inout
-    zm,			& ! repurposed: previous lake sfc heat flux	inout
-    xs,			& ! repurposed: not used, held in reserve	inout
+    skinold,		& ! repurposed: previous tskin			inout
+    temwat,	        & ! repurposed: lake mixed layer temperature	inout
+    xtinct,		& ! repurposed: extinction coefficient		inout
+    thkice,		& ! repurposed: lake ice thickness		inout
+    ticold,		& ! repurposed: previous lake ice surf. temp	inout
+    flxold,		& ! repurposed: previous lake sfc heat flux	inout
     qsat,		& ! saturation specif. humidity			out
     z_c,		& ! sub-layer cooling thickness			out
     dt_warm,		& ! warm-layer surface warming amount		out
@@ -123,21 +121,21 @@ module skinsst
    logical, intent(in) :: lseaspray
    real (kind=kind_phys), dimension(:), intent(in) :: xlon,xlat,	&
       sfcemis, dlwflx, sfcnsw, wind, psfc, plyr1, tlyr1, qlyr1,		&
-      ulyr1, vlyr1, cm, ch, compres, stress, fm, fm10,oceanfrac,tref
+      ulyr1, vlyr1, cm, ch, compres, stress, fm, fm10,oceanfrac
    real (kind=kind_phys), intent(in) :: timestep, hvap, cp, rd, eps,	&
       sbc
 
 ! --- inout:
-   real (kind=kind_phys), dimension(:), intent(inout), target ::	&
-       ulwflx, tsfco, tskin, dt_cool, xzts, xs, xt, xu, xv, xz, zm
+   real (kind=kind_phys), dimension(:), intent(inout) ::		&
+       ulwflx, tsfco, tskin, dt_cool
 
-   real, dimension(:), pointer :: 			&
-   skinold,		& ! previous skin temp				inout
-   temwat,		& ! lake mixed layer temperature		inout
-   xtinct,		& ! extinction coefficient			inout
-   thkice,		& ! lake ice thickness				inout
-   ticold,		& ! previous lake ice surf. temp		inout
-   flxold		  ! previous lake sfc heat flux			inout
+   real (kind=kind_phys), dimension(:), intent(inout) :: &
+   skinold,		& ! previous skin temperature
+   xtinct,		& ! SW extinction coefficient
+   temwat,		& ! lake mixed layer temperature
+   thkice,		& ! lake ice thickness
+   ticold,		& ! previous lake ice surface temperature
+   flxold		  ! previous lake surface heatflux
 
 ! --- output:
    real (kind=kind_phys), dimension(:), intent(out) :: evap, hflx,	&
@@ -182,43 +180,7 @@ module skinsst
 ! --- temporary:
 !  print '(a,2f8.2,l5)','entering skinsst_run, testpt =',testlon,testlat
 
-! --- point to unused arrays inherited from nsst.
-! --- IMPORTANT: these arrays must remain untouched between calls to skinsst.
-! --- we keep nsst array names to simplify switching between nsst and skinsst.
-
-   skinold	=> xzts
-   temwat	=> xt
-   xtinct	=> xv
-   thkice	=> xz
-   ticold	=> xu
-   flxold	=> zm
-
    do i = 1,im
-
-    details=.false.
-
-! --- check which arrays inherited from NSST are touched outside skinsst.
-!  if (xzts(i).ne.-.03125) details=.true.
-     if (xs(i).ne.-.03125) details=.true.
-!    if (xt(i).ne.-.03125) details=.true.
-!    if (xu(i).ne.-.03125) details=.true.
-!    if (xv(i).ne.-.03125) details=.true.
-!    if (xz(i).ne.-.03125) details=.true.
-!    if (zm(i).ne.-.03125) details=.true.
-!   if (c_0(i).ne.-.03125) details=.true.
-!   if (c_d(i).ne.-.03125) details=.true.
-!   if (w_0(i).ne.-.03125) details=.true.
-!   if (w_d(i).ne.-.03125) details=.true.
-!if (d_conv(i).ne.-.03125) details=.true.
-!   if (ifd(i).ne.-.03125) details=.true.
-    if (details) then
-     alon=xlon(i)*rad2deg
-     alat=xlat(i)*rad2deg
-     if (doprint(alon,alat))						&
-     print '(a,2f8.2/13f6.3)','error: arrays overwritten at lon,lat=',	&
-       alon,alat,xs(i)
-    end if
-
     if (wet(i)) then
 
      alon=xlon(i)*rad2deg
@@ -254,7 +216,6 @@ module skinsst
 !     'compres',compres(i),		& ! midlyr-to-sfc adiab.compression
       'skinold',skinold(i)-frz,		& ! previous tskin
       'dcoolE2',dt_cool(i)*100.,	& ! previous dtcool
-!     'tref',tref(i)-frz,		& ! foundation temp
       'tsfco',tsfco(i)-frz		  ! ocean top layer temperature
       print '(5(a13,"=",l2))','lseaspray',lseaspray
       if (oceanfrac(i).eq.0.) print '(2f7.2,a)',alon,alat,' is -lake- point'
@@ -471,22 +432,6 @@ module skinsst
      evap(i) = evap(i)/(rho_air * hvap)				! m/sec
 
     end if				! wet
-
-! --- check which arrays inherited from NSST are touched outside skinsst.
-!  xzts(i) = -.03125
-     xs(i) = -.03125
-!    xt(i) = -.03125
-!    xu(i) = -.03125
-!    xv(i) = -.03125
-!    xz(i) = -.03125
-!    zm(i) = -.03125
-!   c_0(i) = -.03125
-!   c_d(i) = -.03125
-!   w_0(i) = -.03125
-!   w_d(i) = -.03125
-!d_conv(i) = -.03125
-!   ifd(i) = -.03125
-
    end do		! im loop
 
    return
@@ -685,7 +630,7 @@ module skinsst
    ticold  	  ! previous ice surface temperature
 
    real ::		&
-   tmelt=frz-.2,	& ! melting point (deg)
+   tmelt=frz-.2,	& ! melting point (deg K)
    thin=.01,		& ! min.ice thickness
    rhoice=917.,		& ! ice density (kg/m^3)
    rhowat=1000.,	& ! water density (kg/m^3)
@@ -695,7 +640,6 @@ module skinsst
 !  fluctn=3./3600,	& ! limit on temice fluctuation (deg/sec)
    fluctn=2./3600,	& ! limit on temice fluctuation (deg/sec)
    spcifh=4190.,	& ! specific heat of water (J/kg/deg)
-!  dpth=20.		  ! nominal mixed layer depth (m)
 !  dpth=30.		  ! nominal mixed layer depth (m)
    dpth=40.		  ! nominal mixed layer depth (m)
    real :: tnew,borrow,paybak,avail
