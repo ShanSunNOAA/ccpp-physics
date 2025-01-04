@@ -125,42 +125,6 @@
   type = real
   kind = kind_phys
   intent = inout
-#[temice]
-#  standard_name = lake_ice_surface_temperature
-#  long_name = lake_ice_surface_temperature
-#  units = K
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[thkice]
-#  standard_name = lake_ice_thickness
-#  long_name = lake_ice_thickness
-#  units = m
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-[tref]
-  standard_name = reference_sea_surface_temperature
-  long_name = reference/foundation temperature
-  units = K
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = in
-  optional = True
-[xzts]
-  standard_name = derivative_of_diurnal_thermocline_layer_thickness_wrt_surface_skin_temperature
-  long_name = d(xz)/d(ts)
-  units = m K-1
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-  optional = True
 [tskin]
   standard_name = surface_skin_temperature_over_water
   long_name = surface skin temperature over water
@@ -169,19 +133,6 @@
   type = real
   kind = kind_phys
   intent = inout
-[xs]
-  standard_name = sea_water_salinity_in_diurnal_thermocline
-  long_name = salinity  content in diurnal thermocline layer
-  units = ppt m
-# - - - - - - - - - - - - - - - - - - - - -
-# long name = holding place for dt_cool
-# units = deg K
-# - - - - - - - - - - - - - - - - - - - - -
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-  optional = True
 [dt_warm]
   standard_name = derivative_of_heat_content_in_diurnal_thermocline_wrt_surface_skin_temperature
   long_name = warm-skin surface temperature increment
@@ -296,14 +247,6 @@
   type = real
   kind = kind_phys
   intent = inout
-#[gflux]
-#  standard_name = upward_heat_flux_in_soil_over_water
-#  long_name = soil heat flux over water
-#  units = W m-2
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
 [evap]
   standard_name = kinematic_surface_upward_latent_heat_flux_over_water
   long_name = kinematic surface upward latent heat flux over water
@@ -406,110 +349,51 @@
   dimensions = ()
   type = integer
   intent = out
-[xt]
-  standard_name = heat_content_in_diurnal_thermocline
-  long_name = heat content in diurnal thermocline layer
-  units = K m
-# - - - - - - - - - - - - - - - - - - - - -
-# long name = lake ice surface temperature
-# units = deg K
-# - - - - - - - - - - - - - - - - - - - - -
+[skinold]
+  standard_name = previous_skin_temperature
+  long_name = previous skin temperature
+  units = K
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-  optional = True
-[xu]
-  standard_name = x_current_in_diurnal_thermocline
-  long_name = u-current content in diurnal thermocline layer
-  units = m2 s-1
+[temwat]
+  standard_name = mixed_layer_temperature_lake
+  long_name = mixed layer temperature lake
+  units = K 
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-  optional = True
-[xv]
-  standard_name = y_current_in_diurnal_thermocline
-  long_name = v-current content in diurnal thermocline layer
-  units = m2 s-1
+[xtinct]
+  standard_name = extinction_coefficient
+  long_name = extinction coefficient
+  units = none
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-  optional = True
-[xz]
-  standard_name = diurnal_thermocline_layer_thickness
-  long_name = diurnal thermocline layer thickness
+[ticold]
+  standard_name = previous_lake_ice_surface_temperature
+  long_name = previous lake ice surface temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
+[thkice]
+  standard_name = lake_ice_thickness 
+  long_name = lake ice thickness 
   units = m
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-  optional = True
-[zm]
-  standard_name = ocean_mixed_layer_thickness
-  long_name = mixed layer thickness
-# - - - - - - - - - - - - - - - - - - - - -
-# long_name = lake ice thickness
-# units = m
-# - - - - - - - - - - - - - - - - - - - - -
-  units = m
+[flxold]
+  standard_name = previous_lake_surface_heatflux
+  long_name = previous lake surface heatflux
+  units = W m-2
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-  optional = True
-#[c_0]
-#  standard_name = coefficient_c_0
-#  long_name = coefficient1 to calculate d(tz)/d(ts)
-#  units = none
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[c_d]
-#  standard_name = coefficient_c_d
-#  long_name = coefficient2 to calculate d(tz)/d(ts)
-#  units = none
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[w_0]
-#  standard_name = coefficient_w_0
-#  long_name = coefficient3 to calculate d(tz)/d(ts)
-#  units = none
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[w_d]
-#  standard_name = coefficient_w_d
-#  long_name = coefficient4 to calculate d(tz)/d(ts)
-#  units = none
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[d_conv]
-#  standard_name = free_convection_layer_thickness_in_sea_water
-#  long_name = thickness of free convection layer
-#  units = m
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
-#[ifd]
-#  standard_name = control_for_diurnal_thermocline_calculation
-#  long_name = index to start dtlm run or not
-#  units = index
-#  dimensions = (horizontal_loop_extent)
-#  type = real
-#  kind = kind_phys
-#  intent = inout
-#  optional = True
