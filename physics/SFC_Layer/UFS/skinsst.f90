@@ -89,6 +89,7 @@ module skinsst
     sbc,		& ! stefan-boltzmann constant			in
     tskin,		& ! skin temp					inout
     skinold,		& ! previous tskin				inout
+    wrmlyr,		& ! switch for warm layer presence              inout
     temwat,	        & ! lake mixed layer temperature		inout
     xtinct,		& ! extinction coefficient			inout
     thkice,		& ! lake ice thickness				inout
@@ -126,7 +127,7 @@ module skinsst
 
 ! --- inout:
    real (kind=kind_phys), dimension(:), intent(inout) ::		&
-       ulwflx, tsfco, tskin, dt_cool
+       ulwflx, tsfco, tskin, dt_cool, wrmlyr
 
    real (kind=kind_phys), dimension(:), intent(inout) ::		&
    skinold,		& ! previous skin temperature
@@ -262,14 +263,39 @@ module skinsst
      if (oceanfrac(i).gt.0.) then
 
 ! --- apply warm layer correction
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+! --- tskin from last time step has been saved in skinold
+! --- lake variables (temp, thickness) are saved between
+! --- consecutive calls in temwat,thkice
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
       if (tskin(i)-frz.lt.-25.)						&
        print '(a,2f8.2,es13.3)', 'excessively cold tskin at lon,lat',	&
        alon,alat,tskin(i)-frz
 
 ! --- bypass warm layer calculation if SW flux is up or tskin is below freezing
-      if (sfcnsw(i).lt.0. .or. tskin(i).lt.frz) then
-       tskin(i)=tsfco(i)
+      if (tskin(i).lt.frz) then
+       tskin(i) = tsfco(i)
+        
+      else if (sfcnsw(i).le.0.) then		! no sunlight
+
+! --- after sunset, let tskin approach tsfco through diffusion.
+! --- apply lower threshold on tskin-tsfco to finish process in finite time
+
+       if (wrmlyr(i) .gt. 0.) then		! warm layer still peresent
+        if (tskin(i) .gt. tsfco(i)) then
+         tskin(i) = tskin(i) - max(.2,tskin(i)-tsfco(i))		&
+           * min(1.,timestep*piston(wind(i)))
+         if (tskin(i) .lt. tsfco(i)) then
+          tskin(i) = tsfco(i)
+          wrmlyr(i) = 0.			! warm layer destroyed
+         end if
+        end if
+
+       else					! no warm layer
+        tskin(i) = tsfco(i)
+       end if
+
       else 					! SW flux > 0
 
 ! --- evaluate warm-layer increment during current time step
@@ -282,6 +308,7 @@ module skinsst
 ! --- cooling by downward heat diffusion
        tskin(i) = tskin(i) + (tsfco(i)-tskin(i))			&
           * min(1.,timestep*piston(wind(i)))
+       wrmlyr(i) = tskin(i) - tsfco(i)
       end if					! SW flux > 0
 
 ! --- save (tskin - top layer T) for diagnostic purposes

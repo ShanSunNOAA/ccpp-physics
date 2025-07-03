@@ -397,3 +397,11 @@
   type = real
   kind = kind_phys
   intent = inout
+[wrmlyr]
+  standard_name = warm_layer
+  long_name = warm layer
+  units = m
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
