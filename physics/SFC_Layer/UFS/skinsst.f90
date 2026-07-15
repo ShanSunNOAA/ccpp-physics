@@ -252,6 +252,8 @@ module skinsst
 
      if (skinold(i).eq.0.) then		! use skinold=0 as indicator for t=0
       frstrip = .true.
+      vertdf=0.
+      tloss=0.
       dt_cool(i) = 0.
       tskin(i)  = tsfco(i)
       temwat(i) = tsfco(i)			! lake temp
@@ -281,18 +283,17 @@ module skinsst
 !      alon,alat,tskin(i)-frz
 
 ! --- bypass warm layer calculation if tskin is below zero or less than tsfco
-      if (tskin(i).lt.frz .or. tskin(i) .le. tsfco(i)) then
-       tskin(i) = tsfco(i)
-       tloss = 0.
-        
+      if (tskin(i) .lt. frz .or. tskin(i) .le. tsfco(i) - dt_cool(i)) then
+        tskin(i) = tsfco(i) - dt_cool(i)
+        tloss = 0.
       else					! tskin > tsfco day or night
 ! --- surface cooling by downward heat diffusion
-       vertdf = tskin(i) - tsfco(i)
+        vertdf = tskin(i) + dt_cool(i) - tsfco(i)
 ! --- at night, bound vertdf away from zero to destroy warm layer in finite time
-       if (sfcnsw(i).le.0.) vertdf = max(0.2,vertdf)
-       tloss = vertdf * timestep*piston(wind(i))/dz
-       tloss = min(tloss,tskin(i)-tsfco(i))
-       tskin(i) = tskin(i) - tloss
+        if (sfcnsw(i).le.0.) vertdf = max(0.2,vertdf)
+        tloss = vertdf * timestep*piston(wind(i))/dz
+        tloss = min(tloss,tskin(i) + dt_cool(i) - tsfco(i))
+        tskin(i) = tskin(i) - tloss
       end if
 
       dt_warm(i) = 0.
@@ -830,7 +831,9 @@ end module skinsst
 !  testlon= 269.95  ; testlat=-44.96
 !  testlon=   0.84  ; testlat=-15.63
 !  testlon= 233.41  ; testlat= 43.47
-   testlon=  80.65  ; testlat=  0.13
+!  testlon=  80.65  ; testlat=  0.13  ! c384
+!  testlon=  80.78  ; testlat=  0.26  ! c192
+!  testlon=  52.25  ; testlat= 38.27  ! lake c192
 
 !  print '(a,2f8.2)','(get_testpt) set test point location',testlon,testlat
 
@@ -841,13 +844,13 @@ end module skinsst
    real function kd_par(deglon,deglat)
 !  Son and Wang (2015): Diffuse attenuation coefficient of the photosynthetically available
 !  radiation Kd(PAR) for global open ocean and coastal waters
-! --- ifac = aa + bb *log(kd_par) at 1x1 deg resolution; kd_par: 0.03-0.3, ifac:1-9
-! --- kd_par = exp((ifac-aa)/bb)
+! --- ipar = aa + bb *log(kd_par) at 1x1 deg resolution; kd_par: 0.03-0.3, ipar:1-9
+! --- kd_par = exp((ipar-aa)/bb)
 
    implicit none
    real,intent(IN) :: deglon,deglat
    real, parameter:: aa=13.1830, bb=3.4744
-   integer :: ifac(360,180),i,j,k
+   integer :: ipar(360,180),i,j,k
    character(len=6480) :: char(0:9)
 
    char(0)=	&
@@ -1223,14 +1226,13 @@ end module skinsst
 
 ! (1,1) => (0.5E,89.5S); (360,180) => (359.E,89.5N)
    do k = 0,9
-     read(char(k),'(36(180i1))') ((ifac(i,:)),i=(k*36+1),(k+1)*36)
+     read(char(k),'(36(180i1))') ((ipar(i,:)),i=(k*36+1),(k+1)*36)
    end do 
 
-   j=max(-89.5,min(89.5,deglat))+90.5
-   i=deglon
+   i=max(1.,min(360.,deglon+1.))
+   j=max(-89.5,min(89.5,deglat))+91.
 
-   if (i.lt.1 .or. i.gt.360) print '(a,5f8.2)','kd error in i:',deglon,deglat
-   kd_par = exp((float(ifac(i,j))-aa)/bb) * 10. + 0.5 
+   kd_par = exp((float(ipar(i,j))-aa)/bb) * 10. + 0.5
 
    return
    end function kd_par
