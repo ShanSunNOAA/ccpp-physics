@@ -124,7 +124,7 @@
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
-  intent = inout
+  intent = in
 [tskin]
   standard_name = surface_skin_temperature_over_water
   long_name = surface skin temperature over water
@@ -133,33 +133,6 @@
   type = real
   kind = kind_phys
   intent = inout
-[dt_warm]
-  standard_name = derivative_of_heat_content_in_diurnal_thermocline_wrt_surface_skin_temperature
-  long_name = warm-skin surface temperature increment
-  units = m
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = out
-  optional = True
-[dt_cool]
-  standard_name = molecular_sublayer_temperature_correction_in_sea_water
-  long_name = sub-layer cooling amount (pos. means cooling)
-  units = K
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-  optional = True
-[z_c]
-  standard_name = molecular_sublayer_thickness_in_sea_water
-  long_name = sub-layer cooling thickness
-  units = m
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-  optional = True
 [cm]
   standard_name = surface_drag_coefficient_for_momentum_in_air_over_water
   long_name = surface exchange coeff for momentum over water
@@ -357,42 +330,34 @@
   type = real
   kind = kind_phys
   intent = inout
-[temwat]
-  standard_name = mixed_layer_temperature_lake
-  long_name = mixed layer temperature lake
-  units = K 
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-[xtinct]
-  standard_name = extinction_coefficient
-  long_name = extinction coefficient
-  units = none
-  dimensions = (horizontal_loop_extent)
-  type = real
-  kind = kind_phys
-  intent = inout
-[ticold]
-  standard_name = previous_lake_ice_surface_temperature
-  long_name = previous lake ice surface temperature
+[dt_cool]
+  standard_name = cool_skin_temperature
+  long_name = cool skin temperature
   units = K
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
   intent = inout
-[thkice]
-  standard_name = lake_ice_thickness 
-  long_name = lake ice thickness 
+[dt_warm]
+  standard_name = warm_layer_temperature
+  long_name = warm layer temperature
+  units = K
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = out
+[z_c]
+  standard_name = sublayer_cooling_thickness
+  long_name = sublayer cooling thickness
   units = m
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
-  intent = inout
-[flxold]
-  standard_name = previous_lake_surface_heatflux
-  long_name = previous lake surface heatflux
-  units = W m-2
+  intent = out
+[xtinct]
+  standard_name = extinction_coefficient
+  long_name = extinction coefficient
+  units = none
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys

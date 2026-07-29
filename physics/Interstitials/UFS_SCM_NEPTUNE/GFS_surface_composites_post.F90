@@ -231,7 +231,7 @@ contains
             tsfcl(i) = tisfc(i)           ! over ice
           endif
           if (wet(i)) then
-            tsfco(i) = tsfc_wat(i)       ! over lake or ocean when uncoupled
+!ssun keep tsfco unchanged over lake           tsfco(i) = tsfc_wat(i)       ! over lake or ocean when uncoupled
           elseif (icy(i)) then
             tsfco(i) = tisfc(i)           ! over lake or ocean ice when uncoupled
           else
