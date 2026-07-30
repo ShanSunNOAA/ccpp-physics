@@ -269,7 +269,32 @@ module skinsst
 !     details = doprint(alon,alat)
       details = .false.
 
-     if (oceanfrac(i).gt.0.) then
+    if (oceanfrac(i).eq.0.) then				! oceanfrac = 0 => call sea ice model
+
+      call surflx(nonsol, tskin(i), tlyr1(i)*compres(i), qlyr1(i),	&
+          psfc(i), hflx(i), qsat(i), evap(i), hvap/cp, eps, rch, sbc,	&
+          sfcemis(i), dlwflx(i), ulwflx(i), alon, alat, details)
+
+      if (.not.frstrip) then		! skip on 1st time step
+
+! --- use rudimentary energy loan lake model 'enloan'.
+
+       totflx = sfcnsw(i) - nonsol	! pos.down
+
+! --- average totflx over 2 time steps to suppress comput.mode in enloan
+       oldflx = flxold(i)
+       flxold(i) = totflx
+       totflx = .5*(totflx + oldflx)
+
+       call enloan(timestep, totflx, thkice(i), tskin(i), ticold(i),	&
+                   temwat(i), alon, alat, doprint(alon,alat))
+
+       tsfco(i) = temwat(i)
+       if (thkice(i).gt.0.) evap(i) = 0.
+        
+      end if
+
+      else  ! oceanfrac(i).gt.0.
 
 ! --- apply warm layer correction
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -369,30 +394,6 @@ module skinsst
        end if
       end if				! y1 nonzero
 
-     else				! oceanfrac = 0 => call sea ice model
-
-      call surflx(nonsol, tskin(i), tlyr1(i)*compres(i), qlyr1(i),	&
-          psfc(i), hflx(i), qsat(i), evap(i), hvap/cp, eps, rch, sbc,	&
-          sfcemis(i), dlwflx(i), ulwflx(i), alon, alat, details)
-
-      if (.not.frstrip) then		! skip on 1st time step
-
-! --- use rudimentary energy loan lake model 'enloan'.
-
-       totflx = sfcnsw(i) - nonsol	! pos.down
-
-! --- average totflx over 2 time steps to suppress comput.mode in enloan
-       oldflx = flxold(i)
-       flxold(i) = totflx
-       totflx = .5*(totflx + oldflx)
-
-       call enloan(timestep, totflx, thkice(i), tskin(i), ticold(i),	&
-                   temwat(i), alon, alat, doprint(alon,alat))
-
-       tsfco(i) = temwat(i)
-       if (thkice(i).gt.0.) evap(i) = 0.
-        
-      end if
      end if				! oceanfrac zero or nonzero
 
 ! --- save tskin for next call to skinsst
