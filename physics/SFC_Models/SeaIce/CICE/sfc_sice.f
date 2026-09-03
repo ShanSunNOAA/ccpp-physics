@@ -37,7 +37,7 @@
       subroutine sfc_sice_run                                           &
      &     ( im, kice, sbc, hvap, tgice, cp, eps, epsm1, rvrdm1, grav,  & !  ---  inputs:
      &       t0c, rd, ps, t1, q1, delt,                                 &
-     &       sfcemis, dlwflx, sfcnsw, sfcdsw, srflag,                   &
+     &       sfcemis, dlwflx, sfcnsw, sfcdsw, srflag, flag_lakefreeze,  &
      &       cm, ch, prsl1, prslki, prsik1, prslk1, wind,               &
      &       flag_iter, use_lake_model, lprnt, ipr, thsfc_loc,          &
      &       hice, fice, tice, weasd, tsfc_wat, tprcp, tiice, ep,       & !  ---  input/outputs:
@@ -162,7 +162,7 @@
       integer, dimension(:), intent(in)  :: islmsk
       real (kind=kind_phys), intent(in)  :: delt
 
-      logical, dimension(im), intent(in) :: flag_iter
+      logical, dimension(im), intent(in) :: flag_iter, flag_lakefreeze
       integer, dimension(im), intent(in) :: use_lake_model
 
 !  ---  input/outputs:
@@ -210,8 +210,8 @@
 
       do_sice = .false.
       do i = 1, im
-        flag(i) = islmsk(i) == 2 .and. flag_iter(i)                     &
-     &                           .and. use_lake_model(i) /=1
+        flag(i) = islmsk(i)==2.and.(flag_iter(i).or.flag_lakefreeze(i)) &
+     &                        .and. use_lake_model(i) /=1
         do_sice = do_sice .or. flag(i)
 !       if (flag_iter(i) .and. islmsk(i) < 2) then
 !         hice(i) = zero
@@ -398,7 +398,7 @@
             hflxi(i) = rch(i) * (tice(i)*tem - theta1(i))
             hflxw(i) = rch(i) * (tgice*tem - theta1(i))
           endif
-          tsfc_wat(i) = tgice
+!!        tsfc_wat(i) = tgice  ! too cold for lake
 
 !         hflx(i)  = fice(i)*hflxi    + ffw(i)*hflxw
 !         evap(i)  = fice(i)*evapi(i) + ffw(i)*evapw(i)

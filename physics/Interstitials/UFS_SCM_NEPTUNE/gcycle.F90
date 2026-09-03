@@ -283,7 +283,7 @@ contains
       if ( cplflx ) then
 !       In coupled mode, keep these variables the same as is (before sfccycle is called) over ocean
         do ix=1,npts
-          if ( oceanfrac(ix) > 0.0_kind_phys ) then      
+          if ( oceanfrac(ix) > 0.0_kind_phys .or. lakefrac(ix) > 0.0_kind_phys) then
             hice(ix)   = hice_save(ix) 
             fice(ix)   = fice_save(ix)
             snowd(ix)  = snowd_save(ix)
@@ -302,7 +302,7 @@ contains
 !       In the coupled mode and when NSST is off, update tsfc and tsfco over non-ocean
         else             
           do ix=1,npts
-            if ( oceanfrac(ix) == 0.0_kind_phys ) then 
+            if ( oceanfrac(ix) == 0.0_kind_phys .and. lakefrac(ix) == 0.0_kind_phys) then
               tsfc(ix)  = TSFFCS(ix)
               tsfco(ix) = TSFFCS(ix)
             endif
